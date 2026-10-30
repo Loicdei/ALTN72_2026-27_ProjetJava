@@ -2,16 +2,115 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accueil - Supervision Équipements</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .title {
+            margin-bottom: 30px;
+            color: #333;
+            text-align: center;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .menu-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+        }
+
+        .menu-card:hover {
+            border-color: #0d6efd;
+            color: #0d6efd;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive pour petit écran */
+        @media (max-width: 480px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<!-- Inclusion du header créé précédemment (nom + profil + bouton déconnexion) -->
+<!-- En-tête inclus via le fragment Thymeleaf (Bonjour [Prénom] ([profil]) | Déconnectez-vous) -->
 <div th:replace="~{header :: header}"></div>
 
-<div style="padding: 30px;">
-    <h1>Page d'accueil</h1>
-    <p>Bienvenue sur l'application de supervision des équipements et incidents.</p>
+<div class="container">
+    <h1 class="title">Menu Principal</h1>
+
+    <div class="menu-grid">
+
+        <!-- 1. Équipements -->
+        <!-- TODO: Remplacer href="#" par th:href="@{/equipements}" ou th:href="@{/stations}" quand le contrôleur sera prêt -->
+        <a href="#" class="menu-card">
+            Équipements
+        </a>
+
+        <!-- 2. Incidents -->
+        <!-- TODO: Remplacer href="#" par th:href="@{/incidents}" quand le contrôleur sera prêt -->
+        <a href="#" class="menu-card">
+            Incidents
+        </a>
+
+        <!-- 3. Prestataires -->
+        <!-- TODO: Remplacer href="#" par th:href="@{/prestataires}" quand le contrôleur sera prêt -->
+        <a href="#" class="menu-card">
+            Prestataires
+        </a>
+
+        <!-- 4. Tableau de bord -->
+        <!-- TODO: Remplacer href="#" par th:href="@{/dashboard}" (ou /tableau-de-bord) pour la fonctionnalité F11 -->
+        <a href="#" class="menu-card">
+            Tableau de bord
+        </a>
+
+    </div>
 </div>
 
 </body>

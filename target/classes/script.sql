@@ -70,8 +70,8 @@ INSERT INTO prestataire (nom, email, telephone) VALUES ('TechServices SARL', 'co
 
 -- 3 Profils utilisateurs d'exemple (Responsable d'exploitation et Agent terrain)
 INSERT INTO utilisateur (id_connexion, mot_de_passe_hache, prenom, profil) VALUES
-('resp_exploitation', '$2a$12$e82R4ZpL8M8V2c.x8O3z1u3G9M1K2L3M4N5O6P7Q8R9S0T1U2V3W4', 'Loic', 'RESPONSABLE_EXPLOITATION'),
-('agent_terrain', '$2a$12$f93S5AqM9N9W3d.y9P4a2v4H0N2L3M4N5O6P7Q8R9S0T1U2V3W5', 'Leo', 'AGENT');
+('resp_exploitation', '$2a$12$kONtYno4DcaQgPE0cCEKv.qYHeXvht2MrJlNEfJGvjpFyJSV2xnTC', 'Loic', 'RESPONSABLE_EXPLOITATION'),
+('agent_terrain', '$2a$12$j67zwx5Uxod2IPSAihRZl.JLqAdDzQOY7mhndiw6pLFOth.d3tkye', 'Leo', 'AGENT_TERRAIN');
 
 INSERT INTO equipement (reference, libelle, type_equipement, etat_fonctionnement, id_station) VALUES
 ('EQ-CH-001', 'Borne de validation 1', 'Validateur', 'EN_SERVICE', 1),

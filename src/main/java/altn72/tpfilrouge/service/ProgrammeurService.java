@@ -1,13 +1,12 @@
 package altn72.tpfilrouge.service;
 
 import altn72.tpfilrouge.modele.Programmeur;
-import altn72.tpfilrouge.modele.ProgrammeurRepository;
+import altn72.tpfilrouge.repository.ProgrammeurRepository;
 // import jakarta.transaction.Transactional;
 // 4.6.2 -- On utilise le @Transactional de Spring (et non celui de Jakarta) : c'est celui que Spring gère nativement,
 // et il offre plus d'options (readOnly, rollbackFor, propagation...).
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

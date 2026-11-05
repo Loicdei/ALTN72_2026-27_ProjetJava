@@ -9,5 +9,4 @@ public interface EquipementRepository extends JpaRepository<Equipement, Long> {
 
     List<Equipement> findByStationId(Long stationId);
 
-    Optional<Equipement> findByReference(String reference);
 }

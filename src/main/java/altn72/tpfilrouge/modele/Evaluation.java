@@ -1,13 +1,6 @@
 package altn72.tpfilrouge.modele;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
@@ -16,70 +9,51 @@ public class Evaluation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "id_evaluation")
     private Long id;
 
     @Column(name = "note", nullable = false)
-    private Integer note;
+    private Integer note; // ex: 1 à 5 ou sur 20
 
-    @Column(name = "commentaire", length = 500)
+    @Column(name = "commentaire")
     private String commentaire;
 
-    @Column(name = "date_evaluation", nullable = false)
+    @Column(name = "date_evaluation")
     private LocalDate dateEvaluation;
 
-    @OneToOne(optional = false)
-    @JoinColumn(name = "incident_id", nullable = false, unique = true)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "id_prestataire", nullable = false)
+    private Prestataire prestataire;
+
+    @OneToOne
+    @JoinColumn(name = "id_incident")
     private Incident incident;
 
-    public Evaluation() {
-    }
+    public Evaluation() {}
 
-    public Evaluation(Integer note, String commentaire, LocalDate dateEvaluation, Incident incident) {
+    public Evaluation(Integer note, String commentaire, LocalDate dateEvaluation, Prestataire prestataire) {
         this.note = note;
         this.commentaire = commentaire;
         this.dateEvaluation = dateEvaluation;
-        this.incident = incident;
+        this.prestataire = prestataire;
     }
 
     // Getters et Setters
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Integer getNote() { return note; }
+    public void setNote(Integer note) { this.note = note; }
 
-    public Integer getNote() {
-        return note;
-    }
+    public String getCommentaire() { return commentaire; }
+    public void setCommentaire(String commentaire) { this.commentaire = commentaire; }
 
-    public void setNote(Integer note) {
-        this.note = note;
-    }
+    public LocalDate getDateEvaluation() { return dateEvaluation; }
+    public void setDateEvaluation(LocalDate dateEvaluation) { this.dateEvaluation = dateEvaluation; }
 
-    public String getCommentaire() {
-        return commentaire;
-    }
+    public Prestataire getPrestataire() { return prestataire; }
+    public void setPrestataire(Prestataire prestataire) { this.prestataire = prestataire; }
 
-    public void setCommentaire(String commentaire) {
-        this.commentaire = commentaire;
-    }
-
-    public LocalDate getDateEvaluation() {
-        return dateEvaluation;
-    }
-
-    public void setDateEvaluation(LocalDate dateEvaluation) {
-        this.dateEvaluation = dateEvaluation;
-    }
-
-    public Incident getIncident() {
-        return incident;
-    }
-
-    public void setIncident(Incident incident) {
-        this.incident = incident;
-    }
+    public Incident getIncident() { return incident; }
+    public void setIncident(Incident incident) { this.incident = incident; }
 }

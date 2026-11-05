@@ -2,9 +2,8 @@ package altn72.tpfilrouge.repository;
 
 import altn72.tpfilrouge.modele.Evaluation;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
+import java.util.List;
 
 public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
-
-    Optional<Evaluation> findByIncidentId(Long incidentId);
+    List<Evaluation> findByPrestataireId(Long prestataireId);
 }

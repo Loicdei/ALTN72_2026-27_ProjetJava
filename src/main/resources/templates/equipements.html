@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulter les équipements - TP Fil Rouge</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<!-- Insertion du header partagé -->
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Consultation des équipements</h2>
+
+    <!-- Formulaire de filtrage par station -->
+    <form th:action="@{/equipements}" method="get" class="row g-3 align-items-center mb-4">
+        <div class="col-auto">
+            <label for="stationSelect" class="col-form-label fw-bold">Filtrer par station :</label>
+        </div>
+        <div class="col-auto">
+            <select id="stationSelect" name="stationId" class="form-select" onchange="this.form.submit()">
+                <option value="" th:selected="${selectedStationId == null}">-- Toutes les stations --</option>
+                <option th:each="station : ${stations}"
+                        th:value="${station.id}"
+                        th:text="${station.nom}"
+                        th:selected="${station.id == selectedStationId}">
+                </option>
+            </select>
+        </div>
+    </form>
+
+    <!-- Tableau d'affichage des équipements -->
+    <div th:if="${equipements != null}">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Référence</th>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>État de fonctionnement</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="equipement : ${equipements}">
+                <td th:text="${equipement.id}">1</td>
+                <td th:text="${equipement.reference}">REF-001</td>
+                <td th:text="${equipement.libelle}">Borne de validation</td>
+                <td th:text="${equipement.type}">Électronique</td>
+                <td>
+                    <span th:class="${equipement.etatFonctionnement == 'EN_SERVICE' || equipement.etatFonctionnement == 'OK' ? 'badge bg-success' : 'badge bg-danger'}"
+                          th:text="${equipement.etatFonctionnement}">
+                        EN_SERVICE
+                    </span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(equipements)}">
+                <td colspan="5" class="text-center text-muted">Aucun équipement trouvé.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <a th:href="@{/accueil}" class="btn btn-secondary mt-3">Retour à l'accueil</a>
+</div>
+
+</body>
+</html>

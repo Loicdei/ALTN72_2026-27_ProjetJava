@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Importer des équipements - Supervision Équipements</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-3">Importer des équipements</h2>
+
+    <div th:if="${erreurs != null}" class="alert alert-danger" role="alert">
+        <p class="fw-bold mb-2">Aucun équipement n'a été importé. Corrigez le fichier, puis recommencez :</p>
+        <ul class="mb-0">
+            <li th:each="erreur : ${erreurs}" th:text="${erreur}">Ligne 2 : la station n'existe pas.</li>
+        </ul>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">Format attendu</div>
+        <div class="card-body">
+            <p>Un fichier CSV en UTF-8, avec le point-virgule comme séparateur et cette première ligne :</p>
+            <p><code>reference;libelle;type;etat;station</code></p>
+            <ul>
+                <li>L'état vaut EN_SERVICE, EN_PANNE ou EN_MAINTENANCE.</li>
+                <li>La station doit déjà exister, avec exactement le même nom.</li>
+                <li>La référence doit être nouvelle.</li>
+                <li>Si une seule ligne est invalide, rien n'est importé.</li>
+            </ul>
+            <a th:href="@{/exemples/import-equipements.csv}" download>Télécharger un fichier d'exemple</a>
+        </div>
+    </div>
+
+    <form th:action="@{/equipements/import}" method="post" enctype="multipart/form-data" class="mb-3">
+        <div class="mb-3">
+            <label for="fichier" class="form-label fw-bold">Fichier CSV (1 Mo maximum)</label>
+            <input type="file" id="fichier" name="fichier" accept=".csv,text/csv" class="form-control w-50" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Importer</button>
+        <a th:href="@{/equipements}" class="btn btn-secondary">Retour aux équipements</a>
+    </form>
+</div>
+
+</body>
+</html>

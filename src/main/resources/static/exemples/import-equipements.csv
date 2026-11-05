@@ -1,0 +1,4 @@
+reference;libelle;type;etat;station
+EQ-CH-101;Ascenseur quai 1;Ascenseur;EN_SERVICE;Station Châtelet
+EQ-GL-102;Escalier mécanique sortie nord;Escalier mécanique;EN_PANNE;Station Gare de Lyon
+EQ-LD-103;Écran d'information hall;Affichage;EN_MAINTENANCE;Station La Défense

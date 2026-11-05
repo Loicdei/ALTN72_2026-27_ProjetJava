@@ -29,7 +29,7 @@ public class ConfigurationSecurite {
                         .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
                         .requestMatchers(HttpMethod.POST, "/api/incidents/*/resolution")
                         .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
-                        .requestMatchers("/tableau-de-bord", "/statistiques")
+                        .requestMatchers("/tableau-de-bord", "/statistiques", "/equipements/import")
                         .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
                         .anyRequest().authenticated()
                 )

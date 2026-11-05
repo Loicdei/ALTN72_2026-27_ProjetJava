@@ -33,7 +33,8 @@ Comptes de test (les mots de passe sont hachés dans le script) :
 - Agent de terrain : agent_terrain / [à compléter]
 
 Limites connues :
-- La fonctionnalité transverse 2 n'est pas encore dans le dépôt.
+- L'import crée de nouveaux équipements, mais ne crée pas les stations et ne modifie pas les équipements existants.
+- L'ouverture du fichier exporté dans Excel n'a pas été essayée : nous avons seulement relu son contenu.
 - Chart.js et Bootstrap sont chargés depuis un CDN : les graphiques et la mise en page demandent un accès à Internet.
 - Dans l'API, les erreurs produites hors de notre contrôleur (403, 405, route inconnue) gardent le format standard de Spring Boot, en anglais.
 - L'en-tête affiche le profil entre crochets, et sec:authorize n'est pas interprété.
@@ -71,19 +72,20 @@ Les tests se lancent avec la commande suivante, sans base à installer car ils u
 ./mvnw verify
 ```
 
-Il y a 137 tests :
-- IncidentServiceTest (18), EvaluationServiceTest (12), TableauDeBordServiceTest (8) et StatistiquesServiceTest (5) testent les règles métier avec des mocks et une horloge fixe.
+Il y a 163 tests :
+- IncidentServiceTest (18), EvaluationServiceTest (12), TableauDeBordServiceTest (8), StatistiquesServiceTest (5) et ImportEquipementsServiceTest (14) testent les règles métier avec des mocks et une horloge fixe.
 - NiveauAttentionTest (11) teste les seuils de 48 h et 72 h, y compris à la seconde près.
-- IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11) et StatistiquesControleurTest (6) testent les parcours HTTP avec MockMvc, y compris la sécurité.
+- IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11), StatistiquesControleurTest (6) et ImportExportControleurTest (12) testent les parcours HTTP avec MockMvc, y compris la sécurité.
 - IncidentApiControleurTest (23) teste l'API : réponses JSON, codes HTTP, droits par profil et documentation OpenAPI.
 - TpFilRougeApplicationTests (1) vérifie que l'application démarre.
 
-Ce qui est couvert : F4 à F12, donc la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11, ainsi que le calcul des statistiques et la requête SQL native. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
+Ce qui est couvert : F4 à F12, donc la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11, ainsi que le calcul des statistiques, la requête SQL native, l'export et l'import CSV. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
 
 Ce qui n'est pas couvert :
-- RG9 : l'unicité de la référence d'un équipement repose sur la contrainte de la base et n'a pas de test dédié.
-- script.sql et les requêtes sur un vrai serveur MySQL ou MariaDB, car les tests utilisent H2 et génèrent leur schéma à partir des entités. Nous avons seulement vérifié à la main, sur une instance MySQL 8.0.36 temporaire, que le script se charge, que les pages et l'API répondent et qu'une affectation, une résolution et une évaluation réussissent.
-- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10, F11 et Swagger ont seulement été vérifiés à la main sur H2, et les graphiques sur MySQL.
+- RG9 : l'import refuse une référence déjà utilisée, et ce refus est testé, mais la contrainte d'unicité de la base n'a pas de test dédié.
+- script.sql et les requêtes sur un vrai serveur MySQL ou MariaDB, car les tests utilisent H2 et génèrent leur schéma à partir des entités. Nous avons seulement vérifié à la main, sur une instance MySQL 8.0.36 temporaire, que le script se charge, que les pages et l'API répondent et qu'une affectation, une résolution, une évaluation, un export et un import réussissent.
+- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10, F11 et Swagger ont seulement été vérifiés à la main sur H2, et les graphiques sur MySQL. Les pages d'export et d'import n'ont été contrôlées que par leur HTML.
+- Le message affiché pour un fichier de plus de 1 Mo : il a seulement été vérifié à la main, avec un vrai envoi.
 - Le code JavaScript des graphiques : les tests vérifient les données transmises à la page, pas le dessin.
 - Deux actions simultanées sur un même incident (voir les limites connues).
 - Le retour arrière d'une transaction après une vraie panne.
@@ -106,8 +108,10 @@ Le second profil est l'agent de terrain, qui signale les pannes.
 | F11 | Tableau de bord | Accès complet | Interdit |
 | F12 | API REST | Accès complet | Lecture seule |
 | Lot alpha | Statistiques | Accès complet | Interdit |
+| Lot alpha | Export CSV de l'historique | Accès complet | Accès complet |
+| Lot alpha | Import CSV d'équipements | Accès complet | Interdit |
 
-Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation, du tableau de bord ou des statistiques, ou s'il tente de modifier un incident par l'API, il reçoit une erreur 403. Le responsable d'exploitation est le seul à prendre les décisions de suivi : c'est donc lui qui affecte, résout, évalue et supervise.
+Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation, du tableau de bord, des statistiques ou de l'import, ou s'il tente de modifier un incident par l'API, il reçoit une erreur 403. Le responsable d'exploitation est le seul à prendre les décisions de suivi : c'est donc lui qui affecte, résout, évalue et supervise.
 
 ### Règles que nous avons précisées
 
@@ -127,17 +131,18 @@ Nous avons choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les 
 - RessourceIntrouvableException donne une erreur 404.
 - OperationIncidentInterditeException donne une erreur 409.
 - DonneeInvalideException donne une erreur 400.
+- ImportInvalideException donne une erreur 400. Elle est traitée dans ImportEquipementsControleur, car les erreurs doivent rester affichées sur le formulaire d'import.
 
 Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de formulaire restent affichées sur le formulaire.
 
 Pour l'API, GestionnaireExceptionsApi traduit les mêmes exceptions en JSON au format ProblemDetail (application/problem+json). Il passe avant GestionnaireExceptions grâce à @Order, et ne s'applique qu'au package api : les pages web gardent leur page d'erreur HTML.
 
-Nous n'utilisons pas ResponseEntity : les pages renvoient le nom d'une vue, et l'API renvoie ses objets avec le code 200 par défaut. ProblemDetail porte déjà le code des réponses d'erreur.
+Nous n'utilisons ResponseEntity qu'à un seul endroit, ExportHistoriqueControleur, car le type du fichier et son nom de téléchargement passent par les en-têtes de la réponse. Ailleurs, il n'apporterait rien : les pages renvoient le nom d'une vue, l'API renvoie ses objets avec le code 200 par défaut, et ProblemDetail porte déjà le code des réponses d'erreur.
 
 ### SOLID
 
 Principes appliqués :
-- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service. De même, changer un seuil d'urgence ne touche que NiveauAttention. L'API n'a pas eu besoin de réécrire les règles d'affectation et de résolution, car elle appelle le même service que les pages.
+- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service. De même, changer un seuil d'urgence ne touche que NiveauAttention. L'API n'a pas eu besoin de réécrire les règles d'affectation et de résolution, car elle appelle le même service que les pages. L'export et l'import ont aussi chacun leur service, séparé de leur contrôleur.
 - Inversion des dépendances : les services reçoivent leurs dépendances par le constructeur, dont Clock et les repositories. Cela permet de les tester avec une horloge fixe et des mocks.
 
 Principes écartés :
@@ -172,6 +177,8 @@ Il est utilisé sur trois méthodes d'IncidentService :
 
 declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui les départage. ProgrammeurService en contient aussi deux autres, qui viennent du TP.
 
+Il est aussi utilisé sur ImportEquipementsService.importerEquipements : plusieurs insertions doivent réussir ou échouer ensemble, pour qu'un import ne reste jamais à moitié fait (RG10).
+
 Le contrôleur REST n'en ajoute aucun, car il réutilise les méthodes d'IncidentService. StatistiquesService n'en a pas besoin non plus : il ne fait que des lectures, et de petits écarts entre deux graphiques n'ont pas d'importance.
 
 @Transactional rend les changements atomiques, mais ne protège pas contre deux actions simultanées sur un même incident (voir les limites connues).
@@ -204,9 +211,29 @@ Difficultés : [à compléter]
 
 Reste à faire : choisir la période de la tendance, et tester le dessin des graphiques, qui n'a pas de test automatique.
 
-### Fonctionnalité transverse 2 : [à compléter]
+### Fonctionnalité transverse 2 : Import / export de données (piste 9)
 
-Besoin, périmètre, choix et essais, ce qui fonctionne, difficultés, reste à faire : [à compléter]
+Besoin : le responsable d'exploitation doit pouvoir sortir l'historique des incidents pour le retravailler dans un tableur, et ajouter plusieurs équipements d'un coup sans passer par la base.
+
+Périmètre :
+- un export CSV de l'historique des incidents résolus, depuis la page d'historique, pour les deux profils ;
+- un import CSV de nouveaux équipements, depuis la liste des équipements, réservé au responsable, avec un fichier d'exemple à télécharger.
+
+Choix et essais :
+- Apache Commons CSV, plutôt que d'écrire nous-mêmes la gestion des guillemets et des séparateurs.
+- Le point-virgule et la marque UTF-8 en tête de fichier, pour qu'Excel en français sépare bien les colonnes et garde les accents. L'import accepte cette marque, et refuse un fichier qui n'est pas en UTF-8 avec un message qui explique quoi faire.
+- Un import en tout ou rien : toutes les lignes sont vérifiées avant d'écrire, et toutes les erreurs sont affichées avec leur numéro de ligne, pour corriger le fichier en une fois.
+- La contrainte d'unicité de la base reste le dernier filet si une même référence est créée pendant l'import.
+- À l'export, un texte qui commence par =, +, -, @ est préfixé d'une apostrophe, pour qu'un tableur ne l'exécute pas comme une formule.
+- Une première version traitait le fichier trop volumineux dans GestionnaireExceptions, mais cette méthode n'était jamais appelée. Nous l'avons retirée, et le message se trouve maintenant dans error.html, avec celui de l'erreur 403.
+
+Progression : réalisée le 5 novembre 2026, après le socle et la fonctionnalité transverse 1.
+
+Ce qui fonctionne : l'export et l'import, avec leurs refus. ImportEquipementsServiceTest et ImportExportControleurTest les testent, et un parcours complet a été vérifié à la main sur MySQL.
+
+Difficultés : [à compléter]
+
+Reste à faire : importer aussi des stations, et essayer le fichier exporté dans Excel.
 
 ## BILAN
 

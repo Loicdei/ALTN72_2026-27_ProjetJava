@@ -11,7 +11,7 @@
 
 <div class="container mt-5">
     <div class="alert alert-danger" role="alert"
-         th:text="${messageErreur} ?: (${status == 403} ? 'Accès refusé : votre profil ne permet pas cette action.' : 'Une erreur est survenue. Merci de réessayer.')">
+         th:text="${messageErreur} ?: (${status == 403} ? 'Accès refusé : votre profil ne permet pas cette action.' : (${status == 413} ? 'Le fichier dépasse la taille maximale autorisée (1 Mo).' : 'Une erreur est survenue. Merci de réessayer.'))">
         Message d'erreur
     </div>
     <a th:href="@{/accueil}" class="btn btn-secondary">Retour à l'accueil</a>

@@ -13,6 +13,8 @@
 <div class="container mt-4">
     <h2 class="mb-4">Consultation des équipements</h2>
 
+    <div th:if="${messageSucces}" class="alert alert-success" role="alert" th:text="${messageSucces}">Message de succès</div>
+
     <!-- Formulaire de filtrage par station -->
     <form th:action="@{/equipements}" method="get" class="row g-3 align-items-center mb-4">
         <div class="col-auto">
@@ -69,6 +71,7 @@
         </table>
     </div>
 
+    <a th:if="${utilisateurConnecte?.responsableExploitation == true}" th:href="@{/equipements/import}" class="btn btn-primary mt-3">Importer des équipements</a>
     <a th:href="@{/accueil}" class="btn btn-secondary mt-3">Retour à l'accueil</a>
 </div>
 

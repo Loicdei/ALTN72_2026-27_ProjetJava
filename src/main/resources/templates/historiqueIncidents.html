@@ -39,6 +39,7 @@
         </tbody>
     </table>
 
+    <a th:unless="${#lists.isEmpty(incidents)}" th:href="@{/incidents/historique/export}" class="btn btn-primary mt-3">Exporter en CSV</a>
     <a th:href="@{/accueil}" class="btn btn-secondary mt-3">Retour à l'accueil</a>
 </div>
 

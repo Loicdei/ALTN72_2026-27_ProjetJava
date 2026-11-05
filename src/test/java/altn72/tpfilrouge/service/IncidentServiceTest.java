@@ -4,6 +4,7 @@ import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
 import altn72.tpfilrouge.modele.StatutIncident;
+import altn72.tpfilrouge.repository.EvaluationRepository;
 import altn72.tpfilrouge.repository.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,8 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,9 +30,13 @@ class IncidentServiceTest {
 
     private static final LocalDateTime MAINTENANT = LocalDateTime.of(2026, 11, 5, 10, 0);
     private static final Long ID_EQUIPEMENT = 1L;
+    private static final Long ID_INCIDENT = 7L;
 
     @Mock
     private IncidentRepository incidentRepository;
+
+    @Mock
+    private EvaluationRepository evaluationRepository;
 
     @Mock
     private EquipementService equipementService;
@@ -39,7 +46,31 @@ class IncidentServiceTest {
     @BeforeEach
     void creerServiceAvecHorlogeFixe() {
         Clock horloge = Clock.fixed(MAINTENANT.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        incidentService = new IncidentService(incidentRepository, equipementService, horloge);
+        incidentService = new IncidentService(incidentRepository, evaluationRepository, equipementService, horloge);
+    }
+
+    @Test
+    void laDureeOuvertureDUnIncidentNonResoluVaJusquAMaintenant() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(47), new Equipement());
+
+        assertThat(incidentService.calculerDureeOuverture(incident)).isEqualTo(Duration.ofHours(47));
+    }
+
+    @Test
+    void laDureeOuvertureDUnIncidentResoluSArreteASaResolution() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(100), new Equipement());
+        incident.setDateHeureResolution(MAINTENANT.minusHours(90));
+
+        assertThat(incidentService.calculerDureeOuverture(incident)).isEqualTo(Duration.ofHours(10));
+    }
+
+    @Test
+    void demanderUnIncidentInexistantEstRefuseAvecUnMessageEnFrancais() {
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> incidentService.obtenirParId(ID_INCIDENT))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessage("L'incident n° 7 n'existe pas.");
     }
 
     @Test

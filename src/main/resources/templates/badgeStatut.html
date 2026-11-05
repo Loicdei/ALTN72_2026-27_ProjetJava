@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<span th:fragment="badge(statut)" class="badge"
+      th:classappend="${statut.name() == 'RESOLU' ? 'bg-success' : (statut.name() == 'AFFECTE' ? 'bg-primary' : 'bg-secondary')}"
+      th:text="${statut.libelle}">Statut</span>
+
+</body>
+</html>

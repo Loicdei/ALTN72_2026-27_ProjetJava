@@ -11,8 +11,6 @@
     <a th:href="@{/equipements}" class="btn btn-secondary">&larr; Retour à la liste</a>
 </div>
 
-<div th:if="${messageSucces}" class="alert alert-success" role="alert" th:text="${messageSucces}">Message de succès</div>
-
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h3 th:text="${equipement.libelle}">Nom de l'équipement</h3>
@@ -54,11 +52,9 @@
             <tr th:each="inc : ${incidents}">
                 <th scope="row" th:text="${inc.id}">1</th>
                 <td th:text="${#temporals.format(inc.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                <td th:text="${inc.description}">Description de la panne</td>
+                <td><a th:href="@{/incidents/{id}(id=${inc.id})}" th:text="${inc.description}">Description de la panne</a></td>
                 <td>
-                    <span class="badge"
-                          th:classappend="${inc.statut.name() == 'RESOLU' ? 'bg-success' : (inc.statut.name() == 'AFFECTE' ? 'bg-primary' : 'bg-secondary')}"
-                          th:text="${inc.statut.libelle}">Statut</span>
+                    <span th:replace="~{badgeStatut :: badge(${inc.statut})}"></span>
                 </td>
                 <td th:text="${inc.prestataire != null ? inc.prestataire.nom : 'Non assigné'}">Prestataire</td>
             </tr>

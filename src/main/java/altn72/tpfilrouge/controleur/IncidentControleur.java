@@ -1,6 +1,7 @@
 package altn72.tpfilrouge.controleur;
 
 import altn72.tpfilrouge.formulaire.FormulaireIncident;
+import altn72.tpfilrouge.modele.Incident;
 import altn72.tpfilrouge.service.EquipementService;
 import altn72.tpfilrouge.service.IncidentService;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class IncidentControleur {
 
     private static final String VUE_DECLARATION = "nouvelIncident";
+    private static final String VUE_DETAIL = "detailIncident";
 
     private final IncidentService incidentService;
     private final EquipementService equipementService;
@@ -43,8 +45,17 @@ public class IncidentControleur {
             model.addAttribute("equipement", equipementService.obtenirParId(equipementId));
             return VUE_DECLARATION;
         }
-        incidentService.declarerIncident(equipementId, formulaire.getDescription());
+        Incident incident = incidentService.declarerIncident(equipementId, formulaire.getDescription());
         attributsRedirection.addFlashAttribute("messageSucces", "L'incident a bien été déclaré.");
-        return "redirect:/equipements/" + equipementId;
+        return "redirect:/incidents/" + incident.getId();
+    }
+
+    @GetMapping("/incidents/{id}")
+    public String afficherDetail(@PathVariable Long id, Model model) {
+        Incident incident = incidentService.obtenirParId(id);
+        model.addAttribute("incident", incident);
+        model.addAttribute("dureeOuverture", incidentService.calculerDureeOuverture(incident));
+        model.addAttribute("evaluation", incidentService.obtenirEvaluation(id).orElse(null));
+        return VUE_DETAIL;
     }
 }

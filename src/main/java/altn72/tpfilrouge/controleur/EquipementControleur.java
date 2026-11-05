@@ -1,12 +1,18 @@
 package altn72.tpfilrouge.controleur;
 
+import altn72.tpfilrouge.modele.Equipement;
+import altn72.tpfilrouge.modele.Incident;
 import altn72.tpfilrouge.service.EquipementService;
+import altn72.tpfilrouge.service.IncidentService;
 import altn72.tpfilrouge.service.StationService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/equipements")
@@ -14,10 +20,12 @@ public class EquipementControleur {
 
     private final EquipementService equipementService;
     private final StationService stationService;
+    private final IncidentService incidentService;
 
-    public EquipementControleur(EquipementService equipementService, StationService stationService) {
+    public EquipementControleur(EquipementService equipementService, StationService stationService, IncidentService incidentService) {
         this.equipementService = equipementService;
         this.stationService = stationService;
+        this.incidentService = incidentService;
     }
 
     @GetMapping
@@ -26,13 +34,22 @@ public class EquipementControleur {
         model.addAttribute("selectedStationId", stationId);
 
         if (stationId != null) {
-            // Filtrer par station si une station est sélectionnée
             model.addAttribute("equipements", equipementService.obtenirEquipementsParStation(stationId));
         } else {
-            // Afficher TOUS les équipements au premier chargement
             model.addAttribute("equipements", equipementService.obtenirTousLesEquipements());
         }
 
         return "equipements";
+    }
+
+    @GetMapping("/{id}")
+    public String afficherFicheEquipement(@PathVariable("id") Long id, Model model) {
+        Equipement equipement = equipementService.obtenirParId(id);
+        List<Incident> incidents = incidentService.obtenirIncidentsParEquipement(id);
+
+        model.addAttribute("equipement", equipement);
+        model.addAttribute("incidents", incidents);
+
+        return "detailEquipement";
     }
 }

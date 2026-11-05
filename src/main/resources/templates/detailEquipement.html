@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche Équipement</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="container mt-4">
+
+<div class="mb-3">
+    <a th:href="@{/equipements}" class="btn btn-secondary">&larr; Retour à la liste</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h3 th:text="${equipement.libelle}">Nom de l'équipement</h3>
+    </div>
+    <div class="card-body">
+        <p><strong>Référence :</strong> <span th:text="${equipement.reference}">REF123</span></p>
+        <p><strong>Type :</strong> <span th:text="${equipement.type}">Type</span></p>
+        <p><strong>Station :</strong> <span th:text="${equipement.station.nom}">Station</span></p>
+        <p><strong>État de fonctionnement :</strong>
+            <span class="badge"
+                  th:classappend="${equipement.etatFonctionnement == 'OK' ? 'bg-success' : 'bg-danger'}"
+                  th:text="${equipement.etatFonctionnement}">OK</span>
+        </p>
+    </div>
+</div>
+
+<!-- Liste des incidents -->
+<div class="card">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Historique des Incidents</h4>
+    </div>
+    <div class="card-body">
+        <div th:if="${#lists.isEmpty(incidents)}" class="alert alert-info">
+            Aucun incident signalé pour cet équipement.
+        </div>
+
+        <table th:if="${!#lists.isEmpty(incidents)}" class="table table-striped table-hover">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date de déclaration</th>
+                <th>Description</th>
+                <th>Statut</th>
+                <th>Prestataire</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="inc : ${incidents}">
+                <th scope="row" th:text="${inc.id}">1</th>
+                <td th:text="${#temporals.format(inc.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                <td th:text="${inc.description}">Description de la panne</td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${inc.statut == 'RESOLVED' ? 'bg-success' : (inc.statut == 'IN_PROGRESS' ? 'bg-warning text-dark' : 'bg-danger')}"
+                          th:text="${inc.statut}">STATUT</span>
+                </td>
+                <td th:text="${inc.prestataire != null ? inc.prestataire.nom : 'Non assigné'}">Prestataire</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

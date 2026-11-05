@@ -46,7 +46,14 @@
             <tr th:each="equipement : ${equipements}">
                 <td th:text="${equipement.id}">1</td>
                 <td th:text="${equipement.reference}">REF-001</td>
-                <td th:text="${equipement.libelle}">Borne de validation</td>
+                <td>
+                    <!-- Lien vers la fiche F3 de l'équipement -->
+                    <a th:href="@{/equipements/{id}(id=${equipement.id})}"
+                       th:text="${equipement.libelle}"
+                       class="text-decoration-none fw-bold">
+                        Borne de validation
+                    </a>
+                </td>
                 <td th:text="${equipement.type}">Électronique</td>
                 <td>
                     <span th:class="${equipement.etatFonctionnement == 'EN_SERVICE' || equipement.etatFonctionnement == 'OK' ? 'badge bg-success' : 'badge bg-danger'}"

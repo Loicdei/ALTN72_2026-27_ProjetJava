@@ -104,6 +104,11 @@
             Tableau de bord
         </a>
 
+        <!-- 5. Statistiques -->
+        <a th:href="@{/statistiques}" th:if="${utilisateurConnecte?.responsableExploitation == true}" class="menu-card">
+            Statistiques
+        </a>
+
     </div>
 </div>
 

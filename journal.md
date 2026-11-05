@@ -1,8 +1,6 @@
 # Journal -- Supervision Équipements (ALTN72, 2026-27)
 
-Groupe : Léo [à compléter], Loïc [à compléter]
-
-Les anciennes notes du TP 5 sont dans docs/journal-tp5.md.
+Groupe : Léo ESNAULT, Loïc DEIVASSAGAYAME
 
 ## README
 
@@ -26,7 +24,7 @@ Pour lancer l'application, on met le mot de passe de la base dans la variable SP
 ./mvnw spring-boot:run
 ```
 
-L'application est ensuite sur http://localhost:8080/login.
+L'application est ensuite sur http://localhost:8080/login. Une fois connecté, la documentation de l'API est sur http://localhost:8080/swagger-ui.html.
 
 Application déployée : [à compléter]
 
@@ -35,7 +33,9 @@ Comptes de test (les mots de passe sont hachés dans le script) :
 - Agent de terrain : agent_terrain / [à compléter]
 
 Limites connues :
-- F12 et le lot alpha ne sont pas encore dans le dépôt.
+- La fonctionnalité transverse 2 n'est pas encore dans le dépôt.
+- Chart.js et Bootstrap sont chargés depuis un CDN : les graphiques et la mise en page demandent un accès à Internet.
+- Dans l'API, les erreurs produites hors de notre contrôleur (403, 405, route inconnue) gardent le format standard de Spring Boot, en anglais.
 - L'en-tête affiche le profil entre crochets, et sec:authorize n'est pas interprété.
 - La fiche équipement n'a pas l'en-tête commun et affiche l'état EN_SERVICE en rouge.
 - Le code Programmeur du TP est encore là, alors que sa table n'est pas dans script.sql.
@@ -50,16 +50,18 @@ Dépôt : https://github.com/Loicdei/ALTN72_2026-27_ProjetJava
 Schéma :
 
 ```
-Navigateur -> Spring Security -> Contrôleurs -> Services -> Repositories -> Base de données
-                                     |
-                                     v
-                              Vues Thymeleaf
+Navigateur ou client REST -> Spring Security -> Contrôleurs -> Services -> Repositories -> Base de données
+                                                     |
+                                                     v
+                                     Vues Thymeleaf (pages) ou JSON (API)
 ```
 
 - Les contrôleurs reçoivent les requêtes, valident les formulaires et choisissent la vue.
 - Les services contiennent les règles métier.
 - Les repositories accèdent à la base.
-- Le package modele contient les entités, formulaire les données saisies, exception nos erreurs métier et config la sécurité et l'horloge.
+- Le package modele contient les entités et les objets calculés, formulaire les données saisies, exception nos erreurs métier et config la sécurité, l'horloge et la documentation de l'API.
+- Le package api contient le contrôleur REST, ses objets d'échange et son gestionnaire d'erreurs. Il passe par les mêmes services que les pages web, donc par les mêmes règles.
+- Les graphiques sont dessinés dans le navigateur par static/js/statistiques.js, à partir des données calculées par StatistiquesService.
 
 ## TESTS
 
@@ -69,19 +71,20 @@ Les tests se lancent avec la commande suivante, sans base à installer car ils u
 ./mvnw verify
 ```
 
-Il y a 101 tests :
-- IncidentServiceTest (16), EvaluationServiceTest (12) et TableauDeBordServiceTest (8) testent les règles métier avec des mocks et une horloge fixe.
+Il y a 137 tests :
+- IncidentServiceTest (18), EvaluationServiceTest (12), TableauDeBordServiceTest (8) et StatistiquesServiceTest (5) testent les règles métier avec des mocks et une horloge fixe.
 - NiveauAttentionTest (11) teste les seuils de 48 h et 72 h, y compris à la seconde près.
-- IncidentControleurTest (26), EvaluationControleurTest (16) et TableauDeBordControleurTest (11) testent les parcours HTTP avec MockMvc, y compris la sécurité.
+- IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11) et StatistiquesControleurTest (6) testent les parcours HTTP avec MockMvc, y compris la sécurité.
+- IncidentApiControleurTest (23) teste l'API : réponses JSON, codes HTTP, droits par profil et documentation OpenAPI.
 - TpFilRougeApplicationTests (1) vérifie que l'application démarre.
 
-Ce qui est couvert : F4 à F11, donc la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation et le tableau de bord, avec les règles RG1 à RG8 et RG11. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
+Ce qui est couvert : F4 à F12, donc la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11, ainsi que le calcul des statistiques et la requête SQL native. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
 
 Ce qui n'est pas couvert :
-- F12, car elle n'est pas encore faite.
 - RG9 : l'unicité de la référence d'un équipement repose sur la contrainte de la base et n'a pas de test dédié.
-- script.sql et les requêtes JPQL sur un vrai serveur MySQL ou MariaDB, car les tests utilisent H2 et génèrent leur schéma à partir des entités.
-- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10 et F11 ont seulement été vérifiés à la main dans un navigateur, sur H2.
+- script.sql et les requêtes sur un vrai serveur MySQL ou MariaDB, car les tests utilisent H2 et génèrent leur schéma à partir des entités. Nous avons seulement vérifié à la main, sur une instance MySQL 8.0.36 temporaire, que le script se charge, que les pages et l'API répondent et qu'une affectation, une résolution et une évaluation réussissent.
+- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10, F11 et Swagger ont seulement été vérifiés à la main sur H2, et les graphiques sur MySQL.
+- Le code JavaScript des graphiques : les tests vérifient les données transmises à la page, pas le dessin.
 - Deux actions simultanées sur un même incident (voir les limites connues).
 - Le retour arrière d'une transaction après une vraie panne.
 
@@ -101,8 +104,10 @@ Le second profil est l'agent de terrain, qui signale les pannes.
 | F9 | Consulter l'historique | Lecture seule | Lecture seule |
 | F10 | Évaluer un prestataire | Accès complet | Lecture seule (consultation des notes) |
 | F11 | Tableau de bord | Accès complet | Interdit |
+| F12 | API REST | Accès complet | Lecture seule |
+| Lot alpha | Statistiques | Accès complet | Interdit |
 
-Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation ou du tableau de bord, il reçoit une erreur 403. Le responsable d'exploitation est le seul à prendre les décisions de suivi : c'est donc lui qui affecte, résout, évalue et supervise.
+Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation, du tableau de bord ou des statistiques, ou s'il tente de modifier un incident par l'API, il reçoit une erreur 403. Le responsable d'exploitation est le seul à prendre les décisions de suivi : c'est donc lui qui affecte, résout, évalue et supervise.
 
 ### Règles que nous avons précisées
 
@@ -114,6 +119,8 @@ F10 : la note est saisie une seule fois et ne peut plus être modifiée. Elle es
 
 F11 : le niveau d'attention n'est jamais enregistré. Il est calculé à chaque affichage par NiveauAttention, seul endroit où figurent les seuils de 48 h et 72 h. Les incidents sont triés du plus urgent au moins urgent, puis du plus ancien au plus récent. On peut filtrer par station, par type d'équipement et par niveau d'attention. Les compteurs ignorent le filtre par niveau pour continuer à montrer la répartition complète.
 
+F12 : l'API permet de lister et de consulter les incidents, d'affecter ou réaffecter un prestataire et de déclarer un incident résolu. Elle renvoie des objets IncidentReponse plutôt que les entités, pour ne pas lier le format de l'API au modèle JPA. Elle utilise la session de l'application : sans connexion, l'appel est redirigé vers /login (code 302), comme le demande le sujet pour les pages et l'API, alors qu'une API publique répondrait plutôt 401. Elle indique le niveau d'attention aux deux profils : seul l'écran du tableau de bord est réservé au responsable.
+
 ### Exceptions
 
 Nous avons choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les services lèvent nos exceptions sans rien savoir de HTTP, et la traduction se fait à un seul endroit :
@@ -121,12 +128,16 @@ Nous avons choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les 
 - OperationIncidentInterditeException donne une erreur 409.
 - DonneeInvalideException donne une erreur 400.
 
-Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de formulaire restent affichées sur le formulaire. Nous n'utilisons pas ResponseEntity, car les contrôleurs actuels renvoient des pages.
+Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de formulaire restent affichées sur le formulaire.
+
+Pour l'API, GestionnaireExceptionsApi traduit les mêmes exceptions en JSON au format ProblemDetail (application/problem+json). Il passe avant GestionnaireExceptions grâce à @Order, et ne s'applique qu'au package api : les pages web gardent leur page d'erreur HTML.
+
+Nous n'utilisons pas ResponseEntity : les pages renvoient le nom d'une vue, et l'API renvoie ses objets avec le code 200 par défaut. ProblemDetail porte déjà le code des réponses d'erreur.
 
 ### SOLID
 
 Principes appliqués :
-- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service. De même, changer un seuil d'urgence ne touche que NiveauAttention.
+- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service. De même, changer un seuil d'urgence ne touche que NiveauAttention. L'API n'a pas eu besoin de réécrire les règles d'affectation et de résolution, car elle appelle le même service que les pages.
 - Inversion des dépendances : les services reçoivent leurs dépendances par le constructeur, dont Clock et les repositories. Cela permet de les tester avec une horloge fixe et des mocks.
 
 Principes écartés :
@@ -138,12 +149,19 @@ Principes écartés :
 
 Nous utilisons des requêtes dérivées du nom de méthode, comme findByStatutOrderByDateHeureResolutionDesc.
 
-Nous utilisons aussi trois requêtes JPQL, pour les cas qu'un nom de méthode ne peut pas exprimer simplement :
+Nous utilisons aussi cinq requêtes JPQL, pour les cas qu'un nom de méthode ne peut pas exprimer simplement :
 - IncidentRepository.trouverIncidentsActifs a des filtres facultatifs, et ses « join fetch » évitent une requête par ligne du tableau de bord.
 - PrestataireRepository.calculerNotesDesPrestataires calcule la moyenne, avec des jointures externes pour garder les prestataires sans évaluation.
 - EquipementRepository.trouverTypes donne la liste des types pour le filtre du tableau de bord.
+- IncidentRepository.trouverIncidents a un filtre de statut facultatif et charge d'un coup les données utiles à l'API.
+- IncidentRepository.compterIncidentsParType regroupe les incidents par type pour les statistiques.
 
-Requête SQL native avec son analyse critique : [à compléter]
+La seule requête SQL native est IncidentRepository.compterIncidentsParStation, qui compte les incidents actifs et résolus de chaque station.
+
+Analyse critique :
+- Intérêt : le SQL est direct et lisible, et les jointures externes qui partent de la station gardent les stations sans incident.
+- Limites : les noms de tables et de colonnes ne sont pas contrôlés par le modèle, donc un renommage dans les entités ne met pas la requête à jour, et une erreur n'apparaît qu'à l'exécution. La valeur 'RESOLU' y est écrite en dur et ne suit pas l'enum StatutIncident. Le résultat passe par une interface de projection, moins directe qu'un objet construit en JPQL.
+- Conclusion : JPQL aurait pu faire la même chose. Nous l'avons écrite en SQL parce que le sujet demande une requête native, pas parce que JPQL ne suffisait pas. Nous gardons JPQL pour les autres requêtes. Elle n'utilise que du SQL standard : elle a tourné sur H2 et sur MySQL 8.0.36.
 
 ### @Transactional
 
@@ -154,13 +172,37 @@ Il est utilisé sur trois méthodes d'IncidentService :
 
 declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui les départage. ProgrammeurService en contient aussi deux autres, qui viennent du TP.
 
+Le contrôleur REST n'en ajoute aucun, car il réutilise les méthodes d'IncidentService. StatistiquesService n'en a pas besoin non plus : il ne fait que des lectures, et de petits écarts entre deux graphiques n'ont pas d'importance.
+
 @Transactional rend les changements atomiques, mais ne protège pas contre deux actions simultanées sur un même incident (voir les limites connues).
 
 ## LOT ALPHA
 
-### Fonctionnalité transverse 1 : [à compléter]
+### Fonctionnalité transverse 1 : Visualisation des données (piste 2)
 
-Besoin, périmètre, choix et essais, ce qui fonctionne, difficultés, reste à faire : [à compléter]
+Besoin : le tableau de bord montre la situation à l'instant présent, mais pas les tendances. Le responsable d'exploitation doit aussi pouvoir repérer les stations et les types d'équipement les plus touchés, et comparer les prestataires.
+
+Périmètre : une page /statistiques, réservée au responsable, avec cinq graphiques :
+- les incidents ouverts par jour sur les 14 derniers jours ;
+- les incidents actifs et résolus par station ;
+- les incidents par type d'équipement ;
+- la note moyenne des prestataires ;
+- le délai moyen de résolution par prestataire, en heures.
+
+Choix et essais :
+- Chart.js, car il couvre ces graphiques sans outil de construction. Le contrôleur et le service restent en Java, et le dessin est isolé dans static/js/statistiques.js.
+- Trois sources de données selon le besoin : la requête SQL native pour les stations, JPQL pour les types et les notes, et un calcul en Java pour la tendance et les délais.
+- La tendance montre aussi les jours sans incident, absents du résultat de la requête, sinon la courbe serait trompeuse.
+- Une première version utilisait une courbe arrondie, remplacée par des segments droits : l'arrondi suggérait des valeurs entre deux jours. Le graphique en anneau a aussi été réduit, car il déformait sa rangée.
+- Les prestataires sans note ou sans incident résolu ne sont pas affichés dans les graphiques concernés, pour ne pas les confondre avec une note ou un délai de 0.
+
+Progression : réalisée le 5 novembre 2026, après le socle.
+
+Ce qui fonctionne : les cinq graphiques s'affichent à partir de la base. StatistiquesServiceTest et StatistiquesControleurTest testent les calculs, les requêtes et les droits, et l'affichage a été vérifié à la main sur MySQL.
+
+Difficultés : [à compléter]
+
+Reste à faire : choisir la période de la tendance, et tester le dessin des graphiques, qui n'a pas de test automatique.
 
 ### Fonctionnalité transverse 2 : [à compléter]
 

@@ -23,7 +23,7 @@ public class ConfigurationSecurite {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/incidents/*/affectation")
+                        .requestMatchers(HttpMethod.POST, "/incidents/*/affectation", "/incidents/*/resolution")
                         .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
                         .anyRequest().authenticated()
                 )

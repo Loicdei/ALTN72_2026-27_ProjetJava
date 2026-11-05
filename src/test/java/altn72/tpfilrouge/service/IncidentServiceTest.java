@@ -56,6 +56,71 @@ class IncidentServiceTest {
                 prestataireService, horloge);
     }
 
+    private Incident incidentAffecteOuvertLe(LocalDateTime dateHeureOuverture) {
+        Incident incident = new Incident("Écran figé", dateHeureOuverture, new Equipement());
+        incident.setPrestataire(new Prestataire());
+        incident.setStatut(StatutIncident.AFFECTE);
+        return incident;
+    }
+
+    @Test
+    void declarerResoluEnregistreLaDateEtLeStatut() {
+        Incident incident = incidentAffecteOuvertLe(MAINTENANT.minusHours(5));
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        incidentService.declarerResolu(ID_INCIDENT);
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.RESOLU);
+        assertThat(incident.getDateHeureResolution()).isEqualTo(MAINTENANT);
+    }
+
+    @Test
+    void uneResolutionALInstantMemeDeLOuvertureEstAcceptee() {
+        Incident incident = incidentAffecteOuvertLe(MAINTENANT);
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        incidentService.declarerResolu(ID_INCIDENT);
+
+        assertThat(incident.getDateHeureResolution()).isEqualTo(incident.getDateHeureOuverture());
+    }
+
+    @Test
+    void uneResolutionAvantLOuvertureEstRefusee() {
+        Incident incident = incidentAffecteOuvertLe(MAINTENANT.plusMinutes(1));
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        assertThatThrownBy(() -> incidentService.declarerResolu(ID_INCIDENT))
+                .isInstanceOf(OperationIncidentInterditeException.class);
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.AFFECTE);
+        assertThat(incident.getDateHeureResolution()).isNull();
+    }
+
+    @Test
+    void unIncidentSansPrestataireNePeutPasEtreResolu() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(5), new Equipement());
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        assertThatThrownBy(() -> incidentService.declarerResolu(ID_INCIDENT))
+                .isInstanceOf(OperationIncidentInterditeException.class)
+                .hasMessage("Affectez d'abord un prestataire pour pouvoir résoudre cet incident.");
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+        assertThat(incident.getDateHeureResolution()).isNull();
+    }
+
+    @Test
+    void unIncidentDejaResoluGardeSaDateDeResolutionInitiale() {
+        LocalDateTime dateResolutionInitiale = MAINTENANT.minusHours(1);
+        Incident incident = incidentAffecteOuvertLe(MAINTENANT.minusHours(5));
+        incident.setStatut(StatutIncident.RESOLU);
+        incident.setDateHeureResolution(dateResolutionInitiale);
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        assertThatThrownBy(() -> incidentService.declarerResolu(ID_INCIDENT))
+                .isInstanceOf(OperationIncidentInterditeException.class)
+                .hasMessage("Cet incident est déjà résolu.");
+        assertThat(incident.getDateHeureResolution()).isEqualTo(dateResolutionInitiale);
+    }
+
     @Test
     void affecterUnPrestataireFaitPasserLIncidentAuStatutAffecte() {
         Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());

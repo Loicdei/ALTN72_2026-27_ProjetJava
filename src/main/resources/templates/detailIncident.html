@@ -75,6 +75,15 @@
                 </div>
             </form>
         </div>
+        <div class="card-footer">
+            <form th:if="${incident.prestataire != null}" th:action="@{/incidents/{id}/resolution(id=${incident.id})}"
+                  method="post" onsubmit="return confirm('Déclarer cet incident résolu ? Cette action est définitive.');">
+                <button type="submit" class="btn btn-success btn-sm">Déclarer résolu</button>
+            </form>
+            <small th:unless="${incident.prestataire != null}" class="text-muted">
+                Affectez d'abord un prestataire pour pouvoir résoudre cet incident.
+            </small>
+        </div>
     </div>
 
     <div class="card" th:if="${evaluation != null}">

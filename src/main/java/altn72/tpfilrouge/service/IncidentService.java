@@ -91,4 +91,27 @@ public class IncidentService {
         incident.setStatut(StatutIncident.AFFECTE);
         return incident;
     }
+
+    // Le statut et la date de résolution changent ensemble : un incident résolu sans date serait incohérent (RG5, RG10).
+    @Transactional
+    public Incident declarerResolu(Long id) {
+        Incident incident = obtenirParId(id);
+        LocalDateTime maintenant = LocalDateTime.now(horloge);
+        verifierResolutionPossible(incident, maintenant);
+        incident.setDateHeureResolution(maintenant);
+        incident.setStatut(StatutIncident.RESOLU);
+        return incident;
+    }
+
+    private void verifierResolutionPossible(Incident incident, LocalDateTime dateHeureResolution) {
+        if (incident.isResolu()) {
+            throw new OperationIncidentInterditeException("Cet incident est déjà résolu.");
+        }
+        if (incident.getPrestataire() == null) {
+            throw new OperationIncidentInterditeException("Affectez d'abord un prestataire pour pouvoir résoudre cet incident.");
+        }
+        if (dateHeureResolution.isBefore(incident.getDateHeureOuverture())) {
+            throw new OperationIncidentInterditeException("La date de résolution ne peut pas précéder la date d'ouverture de l'incident.");
+        }
+    }
 }

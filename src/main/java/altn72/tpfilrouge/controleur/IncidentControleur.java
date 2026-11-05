@@ -82,6 +82,13 @@ public class IncidentControleur {
         return "redirect:/incidents/" + id;
     }
 
+    @PostMapping("/incidents/{id}/resolution")
+    public String declarerResolu(@PathVariable Long id, RedirectAttributes attributsRedirection) {
+        incidentService.declarerResolu(id);
+        attributsRedirection.addFlashAttribute("messageSucces", "L'incident a bien été déclaré résolu.");
+        return "redirect:/incidents/" + id;
+    }
+
     private String preparerVueDetail(Incident incident, Model model) {
         model.addAttribute("incident", incident);
         model.addAttribute("dureeOuverture", incidentService.calculerDureeOuverture(incident));

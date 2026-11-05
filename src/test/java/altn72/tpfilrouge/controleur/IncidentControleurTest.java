@@ -218,6 +218,63 @@ class IncidentControleurTest {
         return prestataireRepository.save(new Prestataire(nom, "contact@test.fr", "0100000000"));
     }
 
+    private Incident creerIncidentAffecte() {
+        Incident incident = new Incident("Portique bloqué", LocalDateTime.now().minusHours(3), equipement);
+        incident.setPrestataire(creerPrestataire("Beyonce"));
+        incident.setStatut(StatutIncident.AFFECTE);
+        return incidentRepository.save(incident);
+    }
+
+    @Test
+    void leResponsablePeutDeclarerResoluUnIncidentAffecte() throws Exception {
+        Incident incident = creerIncidentAffecte();
+
+        mockMvc.perform(post("/incidents/{id}/resolution", incident.getId()).with(user(responsable())))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/incidents/" + incident.getId()));
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.RESOLU);
+        assertThat(incident.getDateHeureResolution()).isNotNull();
+    }
+
+    @Test
+    void unAgentNePeutPasDeclarerResoluMemeEnAppelantLUrlDirectement() throws Exception {
+        Incident incident = creerIncidentAffecte();
+
+        mockMvc.perform(post("/incidents/{id}/resolution", incident.getId()).with(user(agentTerrain())))
+                .andExpect(status().isForbidden());
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.AFFECTE);
+        assertThat(incident.getDateHeureResolution()).isNull();
+    }
+
+    @Test
+    void resoudreUnIncidentSansPrestataireEstRefuseAvecUnMessageComprehensible() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(post("/incidents/{id}/resolution", incident.getId()).with(user(responsable())))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(containsString("Affectez d&#39;abord un prestataire")));
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+    }
+
+    @Test
+    void leBoutonDeResolutionNEstProposeQuAuResponsableSurUnIncidentAffecte() throws Exception {
+        Incident affecte = creerIncidentAffecte();
+        Incident nonAffecte = creerIncidentOuvert();
+        Incident resolu = creerIncidentResolu();
+
+        mockMvc.perform(get("/incidents/{id}", affecte.getId()).with(user(responsable())))
+                .andExpect(content().string(containsString("/resolution")));
+        mockMvc.perform(get("/incidents/{id}", affecte.getId()).with(user(agentTerrain())))
+                .andExpect(content().string(not(containsString("/resolution"))));
+        mockMvc.perform(get("/incidents/{id}", nonAffecte.getId()).with(user(responsable())))
+                .andExpect(content().string(not(containsString("/resolution"))));
+        mockMvc.perform(get("/incidents/{id}", resolu.getId()).with(user(responsable())))
+                .andExpect(content().string(not(containsString("/resolution"))));
+    }
+
     @Test
     void leResponsablePeutAffecterPuisReaffecterUnPrestataire() throws Exception {
         Incident incident = creerIncidentOuvert();

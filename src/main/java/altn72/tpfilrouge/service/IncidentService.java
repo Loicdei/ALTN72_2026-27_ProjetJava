@@ -4,6 +4,7 @@ import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.modele.NiveauAttention;
 import altn72.tpfilrouge.modele.StatutIncident;
 import altn72.tpfilrouge.repository.IncidentRepository;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class IncidentService {
@@ -44,6 +46,10 @@ public class IncidentService {
         return incidentRepository.trouverIncidentsActifs(stationId, type);
     }
 
+    public List<Incident> obtenirIncidents(StatutIncident statut) {
+        return incidentRepository.trouverIncidents(statut);
+    }
+
     public Incident obtenirParId(Long id) {
         return incidentRepository.findById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("L'incident n° " + id + " n'existe pas."));
@@ -54,6 +60,13 @@ public class IncidentService {
                 ? incident.getDateHeureResolution()
                 : LocalDateTime.now(horloge);
         return Duration.between(incident.getDateHeureOuverture(), finOuverture);
+    }
+
+    public Optional<NiveauAttention> calculerNiveauAttention(Incident incident) {
+        if (incident.isResolu()) {
+            return Optional.empty();
+        }
+        return Optional.of(NiveauAttention.determinerPourIncidentActif(incident.getStatut(), calculerDureeOuverture(incident)));
     }
 
     public Incident declarerIncident(Long equipementId, String description) {

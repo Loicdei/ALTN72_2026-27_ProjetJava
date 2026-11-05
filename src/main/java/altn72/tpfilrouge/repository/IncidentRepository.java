@@ -24,4 +24,14 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             and (:type is null or e.type = :type)
             """)
     List<Incident> trouverIncidentsActifs(@Param("stationId") Long stationId, @Param("type") String type);
+
+    @Query("""
+            select i from Incident i
+            join fetch i.equipement e
+            join fetch e.station
+            left join fetch i.prestataire
+            where (:statut is null or i.statut = :statut)
+            order by i.dateHeureOuverture desc
+            """)
+    List<Incident> trouverIncidents(@Param("statut") StatutIncident statut);
 }

@@ -42,8 +42,7 @@ public class TableauDeBordService {
 
     private LigneTableauDeBord creerLigne(Incident incident) {
         Duration dureeOuverture = incidentService.calculerDureeOuverture(incident);
-        NiveauAttention niveau = NiveauAttention.determinerPourIncidentActif(incident.getStatut(), dureeOuverture);
-        return new LigneTableauDeBord(incident, niveau, dureeOuverture);
+        return new LigneTableauDeBord(incident, incidentService.calculerNiveauAttention(incident).orElseThrow(), dureeOuverture);
     }
 
     private List<LigneTableauDeBord> filtrerParNiveau(List<LigneTableauDeBord> lignes, NiveauAttention niveau) {

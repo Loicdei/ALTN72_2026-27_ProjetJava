@@ -4,6 +4,7 @@ import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.modele.NiveauAttention;
 import altn72.tpfilrouge.modele.Prestataire;
 import altn72.tpfilrouge.modele.StatutIncident;
 import altn72.tpfilrouge.repository.IncidentRepository;
@@ -170,6 +171,22 @@ class IncidentServiceTest {
                 .isInstanceOf(RessourceIntrouvableException.class);
         assertThat(incident.getPrestataire()).isNull();
         assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+    }
+
+    @Test
+    void unIncidentActifAUnNiveauDAttentionCalculeAvecLHorloge() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(48), new Equipement());
+
+        assertThat(incidentService.calculerNiveauAttention(incident)).contains(NiveauAttention.ORANGE);
+    }
+
+    @Test
+    void unIncidentResoluNaPasDeNiveauDAttention() {
+        Incident incident = incidentAffecteOuvertLe(MAINTENANT.minusHours(100));
+        incident.setStatut(StatutIncident.RESOLU);
+        incident.setDateHeureResolution(MAINTENANT);
+
+        assertThat(incidentService.calculerNiveauAttention(incident)).isEmpty();
     }
 
     @Test

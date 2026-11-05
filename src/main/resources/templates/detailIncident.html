@@ -49,6 +49,9 @@
                 <dd class="col-sm-9" th:text="${incident.prestataire != null ? incident.prestataire.nom : 'Aucun prestataire affecté'}">Prestataire</dd>
             </dl>
         </div>
+        <div class="card-footer" th:unless="${incident.resolu}">
+            <a th:href="@{/incidents/{id}/modifier(id=${incident.id})}" class="btn btn-outline-primary btn-sm">Modifier la description</a>
+        </div>
     </div>
 
     <div class="card" th:if="${evaluation != null}">

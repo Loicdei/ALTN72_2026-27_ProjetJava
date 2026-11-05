@@ -19,6 +19,7 @@ public class IncidentControleur {
 
     private static final String VUE_DECLARATION = "nouvelIncident";
     private static final String VUE_DETAIL = "detailIncident";
+    private static final String VUE_MODIFICATION = "modifierIncident";
 
     private final IncidentService incidentService;
     private final EquipementService equipementService;
@@ -57,5 +58,30 @@ public class IncidentControleur {
         model.addAttribute("dureeOuverture", incidentService.calculerDureeOuverture(incident));
         model.addAttribute("evaluation", incidentService.obtenirEvaluation(id).orElse(null));
         return VUE_DETAIL;
+    }
+
+    @GetMapping("/incidents/{id}/modifier")
+    public String afficherFormulaireModification(@PathVariable Long id, Model model) {
+        Incident incident = incidentService.obtenirIncidentModifiable(id);
+        FormulaireIncident formulaire = new FormulaireIncident();
+        formulaire.setDescription(incident.getDescription());
+        model.addAttribute("incident", incident);
+        model.addAttribute("formulaireIncident", formulaire);
+        return VUE_MODIFICATION;
+    }
+
+    @PostMapping("/incidents/{id}/modifier")
+    public String modifierIncident(@PathVariable Long id,
+                                   @Valid @ModelAttribute("formulaireIncident") FormulaireIncident formulaire,
+                                   BindingResult resultatValidation,
+                                   Model model,
+                                   RedirectAttributes attributsRedirection) {
+        if (resultatValidation.hasErrors()) {
+            model.addAttribute("incident", incidentService.obtenirIncidentModifiable(id));
+            return VUE_MODIFICATION;
+        }
+        incidentService.modifierDescription(id, formulaire.getDescription());
+        attributsRedirection.addFlashAttribute("messageSucces", "L'incident a bien été modifié.");
+        return "redirect:/incidents/" + id;
     }
 }

@@ -20,12 +20,7 @@
 
     <form th:action="@{/equipements/{id}/incidents(id=${equipement.id})}" th:object="${formulaireIncident}"
           method="post" novalidate>
-        <div class="mb-3">
-            <label for="description" class="form-label fw-bold">Description de la panne</label>
-            <textarea id="description" rows="4" class="form-control" th:field="*{description}"
-                      th:errorclass="is-invalid"></textarea>
-            <div class="invalid-feedback" th:errors="*{description}">Message d'erreur</div>
-        </div>
+        <div th:replace="~{champDescription :: champ}"></div>
 
         <button type="submit" class="btn btn-primary">Déclarer l'incident</button>
         <a th:href="@{/equipements/{id}(id=${equipement.id})}" class="btn btn-secondary">Annuler</a>

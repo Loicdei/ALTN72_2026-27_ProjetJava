@@ -1,5 +1,6 @@
 package altn72.tpfilrouge.controleur;
 
+import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.UtilisateurDetails;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,14 @@ public class GestionnaireExceptions {
     public String gererRessourceIntrouvable(RessourceIntrouvableException exception,
                                             @AuthenticationPrincipal UtilisateurDetails utilisateurConnecte,
                                             Model model) {
+        return afficherErreur(exception.getMessage(), utilisateurConnecte, model);
+    }
+
+    @ExceptionHandler(OperationIncidentInterditeException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String gererOperationInterdite(OperationIncidentInterditeException exception,
+                                          @AuthenticationPrincipal UtilisateurDetails utilisateurConnecte,
+                                          Model model) {
         return afficherErreur(exception.getMessage(), utilisateurConnecte, model);
     }
 

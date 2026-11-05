@@ -1,5 +1,6 @@
 package altn72.tpfilrouge.service;
 
+import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
@@ -71,6 +72,28 @@ class IncidentServiceTest {
         assertThatThrownBy(() -> incidentService.obtenirParId(ID_INCIDENT))
                 .isInstanceOf(RessourceIntrouvableException.class)
                 .hasMessage("L'incident n° 7 n'existe pas.");
+    }
+
+    @Test
+    void laDescriptionDUnIncidentNonResoluPeutEtreModifiee() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        Incident modifie = incidentService.modifierDescription(ID_INCIDENT, "Écran figé sur le quai 2");
+
+        assertThat(modifie.getDescription()).isEqualTo("Écran figé sur le quai 2");
+    }
+
+    @Test
+    void laDescriptionDUnIncidentResoluNePeutPlusEtreModifiee() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());
+        incident.setStatut(StatutIncident.RESOLU);
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        assertThatThrownBy(() -> incidentService.modifierDescription(ID_INCIDENT, "Autre description"))
+                .isInstanceOf(OperationIncidentInterditeException.class)
+                .hasMessage("Un incident résolu ne peut plus être modifié.");
+        assertThat(incident.getDescription()).isEqualTo("Écran figé");
     }
 
     @Test

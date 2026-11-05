@@ -41,6 +41,8 @@ public class Incident {
         this.equipement = equipement;
     }
 
+    public boolean isResolu() { return statut == StatutIncident.RESOLU; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

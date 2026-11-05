@@ -138,6 +138,70 @@ class IncidentControleurTest {
                 .andExpect(content().string(containsString("Intervention soignée")));
     }
 
+    private Incident creerIncidentOuvert() {
+        return incidentRepository.save(new Incident("Portique bloqué", LocalDateTime.now().minusHours(1), equipement));
+    }
+
+    private Incident creerIncidentResolu() {
+        Incident incident = new Incident("Portique bloqué", LocalDateTime.now().minusHours(2), equipement);
+        incident.setStatut(StatutIncident.RESOLU);
+        incident.setDateHeureResolution(LocalDateTime.now().minusHours(1));
+        return incidentRepository.save(incident);
+    }
+
+    @Test
+    @WithMockUser
+    void leFormulaireDeModificationEstPreRempliEtAccessibleDepuisLeDetail() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(get("/incidents/{id}", incident.getId()))
+                .andExpect(content().string(containsString("/incidents/" + incident.getId() + "/modifier")));
+        mockMvc.perform(get("/incidents/{id}/modifier", incident.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Portique bloqu&eacute;")));
+    }
+
+    @Test
+    @WithMockUser
+    void uneModificationValideEstEnregistreePuisAfficheLeDetail() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(post("/incidents/{id}/modifier", incident.getId())
+                        .param("description", "Portique bloqué en position fermée"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/incidents/" + incident.getId()));
+
+        assertThat(incident.getDescription()).isEqualTo("Portique bloqué en position fermée");
+    }
+
+    @Test
+    @WithMockUser
+    void uneModificationAvecDescriptionVideEstRefusee() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(post("/incidents/{id}/modifier", incident.getId()).param("description", " "))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("La description est obligatoire.")));
+
+        assertThat(incident.getDescription()).isEqualTo("Portique bloqué");
+    }
+
+    @Test
+    @WithMockUser
+    void unIncidentResoluNeProposePasLaModificationEtLaRefuseCoteServeur() throws Exception {
+        Incident incident = creerIncidentResolu();
+
+        mockMvc.perform(get("/incidents/{id}", incident.getId()))
+                .andExpect(content().string(not(containsString("/modifier"))));
+        mockMvc.perform(get("/incidents/{id}/modifier", incident.getId()))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(containsString("Un incident résolu ne peut plus être modifié.")));
+        mockMvc.perform(post("/incidents/{id}/modifier", incident.getId()).param("description", "Autre"))
+                .andExpect(status().isConflict());
+
+        assertThat(incident.getDescription()).isEqualTo("Portique bloqué");
+    }
+
     @Test
     @WithMockUser
     void unIncidentInexistantDonneUne404() throws Exception {

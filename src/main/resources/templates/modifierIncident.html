@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Modifier l'incident - Supervision Équipements</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-3">Modifier l'incident n° <span th:text="${incident.id}">1</span></h2>
+
+    <p class="text-muted">
+        Équipement :
+        <strong th:text="${incident.equipement.reference + ' - ' + incident.equipement.libelle}">EQ-001 - Borne de validation</strong>
+        (<span th:text="${incident.equipement.station.nom}">Station</span>)
+    </p>
+
+    <form th:action="@{/incidents/{id}/modifier(id=${incident.id})}" th:object="${formulaireIncident}"
+          method="post" novalidate>
+        <div th:replace="~{champDescription :: champ}"></div>
+
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <a th:href="@{/incidents/{id}(id=${incident.id})}" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+
+</body>
+</html>

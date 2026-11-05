@@ -4,9 +4,9 @@ Groupe : Léo ESNAULT, Loïc DEIVASSAGAYAME
 
 ## README
 
-Il faut Java 21, Maven (ou le wrapper mvnw fourni) et une base MySQL ou MariaDB sur le port 3306.
+Pour faire tourner le projet, il faut Java 21, Maven (ou le wrapper mvnw qui est fourni) et une base MySQL ou MariaDB sur le port 3306.
 
-Le script ne crée pas la base, donc on la crée d'abord, puis on lance le script :
+Le script SQL ne crée pas la base. Il faut donc la créer d'abord, puis lancer le script :
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS ALTN72_projet_java CHARACTER SET utf8mb4"
@@ -16,33 +16,34 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS ALTN72_projet_java CHARACTER 
 mysql -u root -p ALTN72_projet_java < src/main/resources/script.sql
 ```
 
-Les dates des incidents de démo sont calculées à partir de l'heure actuelle. Si on relance le script, ils retrouvent l'âge prévu. Il faut le relancer juste avant une démonstration : l'incident ouvert depuis 47 h devient orange une heure plus tard.
+Les dates des incidents de démo sont calculées à partir de l'heure actuelle, donc relancer le script leur redonne l'âge prévu. Le mieux est de le faire juste avant une démo, parce que l'incident ouvert depuis 47 h passe orange une heure plus tard.
 
-Pour lancer l'application, on met le mot de passe de la base dans la variable SPRING_DATASOURCE_PASSWORD, puis :
+Pour démarrer l'application, on met le mot de passe de la base dans la variable SPRING_DATASOURCE_PASSWORD, puis :
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-L'application est ensuite sur http://localhost:8080/login. Une fois connecté, la documentation de l'API est sur http://localhost:8080/swagger-ui.html.
+L'application est ensuite sur http://localhost:8080/login. Une fois connecté, la documentation de l'API se trouve sur http://localhost:8080/swagger-ui.html.
 
-Application déployée : [à compléter]
+Application déployée : https://application-production-62dc.up.railway.app. Elle est hébergée sur Railway à partir du Dockerfile du dépôt, et sa base MySQL n'est pas exposée sur Internet.
 
 Comptes de test (les mots de passe sont hachés dans le script) :
-- Responsable d'exploitation : resp_exploitation / [à compléter]
-- Agent de terrain : agent_terrain / [à compléter]
+- Responsable d'exploitation : resp_exploitation / resp
+- Agent de terrain : agent_terrain / agent
 
 Limites connues :
-- L'import crée de nouveaux équipements, mais ne crée pas les stations et ne modifie pas les équipements existants.
-- L'ouverture du fichier exporté dans Excel n'a pas été essayée : nous avons seulement relu son contenu.
-- Chart.js et Bootstrap sont chargés depuis un CDN : les graphiques et la mise en page demandent un accès à Internet.
-- Dans l'API, les erreurs produites hors de notre contrôleur (403, 405, route inconnue) gardent le format standard de Spring Boot, en anglais.
+- L'import crée de nouveaux équipements, mais il ne crée pas les stations et ne modifie pas les équipements existants.
+- On n'a pas essayé d'ouvrir le fichier exporté dans Excel, on a seulement relu son contenu.
+- Chart.js et Bootstrap viennent d'un CDN, donc il faut Internet pour avoir les graphiques et la mise en page.
+- Dans l'API, les erreurs qui ne passent pas par notre contrôleur (403, 405, route inconnue) gardent le format standard de Spring Boot, en anglais.
 - L'en-tête affiche le profil entre crochets, et sec:authorize n'est pas interprété.
 - La fiche équipement n'a pas l'en-tête commun et affiche l'état EN_SERVICE en rouge.
 - Le code Programmeur du TP est encore là, alors que sa table n'est pas dans script.sql.
+- Sur la version déployée, les incidents de démo vieillissent : leurs niveaux d'attention changent après le chargement du script.
 - La protection CSRF est désactivée.
 - application.properties garde root comme mot de passe par défaut.
-- Incident sans contrôle de version : si deux personnes agissent en même temps sur un même incident, la dernière écriture peut écraser l'autre, et même annuler une résolution.
+- Il n'y a pas de contrôle de version sur Incident. Si deux personnes agissent en même temps sur le même incident, la dernière écriture peut écraser l'autre, et même annuler une résolution.
 
 ## ARCHITECTURE
 
@@ -57,16 +58,17 @@ Navigateur ou client REST -> Spring Security -> Contrôleurs -> Services -> Repo
                                      Vues Thymeleaf (pages) ou JSON (API)
 ```
 
+On a gardé le découpage vu en cours :
 - Les contrôleurs reçoivent les requêtes, valident les formulaires et choisissent la vue.
-- Les services contiennent les règles métier.
+- Les services portent les règles métier.
 - Les repositories accèdent à la base.
-- Le package modele contient les entités et les objets calculés, formulaire les données saisies, exception nos erreurs métier et config la sécurité, l'horloge et la documentation de l'API.
-- Le package api contient le contrôleur REST, ses objets d'échange et son gestionnaire d'erreurs. Il passe par les mêmes services que les pages web, donc par les mêmes règles.
-- Les graphiques sont dessinés dans le navigateur par static/js/statistiques.js, à partir des données calculées par StatistiquesService.
+- modele contient les entités et les objets calculés, formulaire les données saisies, exception nos erreurs métier, et config la sécurité, l'horloge et la documentation de l'API.
+- api regroupe le contrôleur REST, ses objets d'échange et son gestionnaire d'erreurs. Il appelle les mêmes services que les pages web, donc les règles sont les mêmes des deux côtés.
+- Les graphiques sont dessinés dans le navigateur par static/js/statistiques.js, avec les données calculées par StatistiquesService.
 
 ## TESTS
 
-Les tests se lancent avec la commande suivante, sans base à installer car ils utilisent H2 en mémoire :
+Les tests se lancent avec cette commande. Pas besoin d'installer une base, ils utilisent H2 en mémoire :
 
 ```bash
 ./mvnw verify
@@ -74,27 +76,27 @@ Les tests se lancent avec la commande suivante, sans base à installer car ils u
 
 Il y a 163 tests :
 - IncidentServiceTest (18), EvaluationServiceTest (12), TableauDeBordServiceTest (8), StatistiquesServiceTest (5) et ImportEquipementsServiceTest (14) testent les règles métier avec des mocks et une horloge fixe.
-- NiveauAttentionTest (11) teste les seuils de 48 h et 72 h, y compris à la seconde près.
-- IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11), StatistiquesControleurTest (6) et ImportExportControleurTest (12) testent les parcours HTTP avec MockMvc, y compris la sécurité.
+- NiveauAttentionTest (11) teste les seuils de 48 h et 72 h, à la seconde près.
+- IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11), StatistiquesControleurTest (6) et ImportExportControleurTest (12) testent les parcours HTTP avec MockMvc, sécurité comprise.
 - IncidentApiControleurTest (23) teste l'API : réponses JSON, codes HTTP, droits par profil et documentation OpenAPI.
 - TpFilRougeApplicationTests (1) vérifie que l'application démarre.
 
-Ce qui est couvert : F4 à F12, donc la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11, ainsi que le calcul des statistiques, la requête SQL native, l'export et l'import CSV. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
+Ce qui est couvert : F4 à F12, c'est-à-dire la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11. Le calcul des statistiques, la requête SQL native, l'export et l'import CSV sont testés aussi. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
 
 Ce qui n'est pas couvert :
-- RG9 : l'import refuse une référence déjà utilisée, et ce refus est testé, mais la contrainte d'unicité de la base n'a pas de test dédié.
-- script.sql et les requêtes sur un vrai serveur MySQL ou MariaDB, car les tests utilisent H2 et génèrent leur schéma à partir des entités. Nous avons seulement vérifié à la main, sur une instance MySQL 8.0.36 temporaire, que le script se charge, que les pages et l'API répondent et qu'une affectation, une résolution, une évaluation, un export et un import réussissent.
-- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10, F11 et Swagger ont seulement été vérifiés à la main sur H2, et les graphiques sur MySQL. Les pages d'export et d'import n'ont été contrôlées que par leur HTML.
-- Le message affiché pour un fichier de plus de 1 Mo : il a seulement été vérifié à la main, avec un vrai envoi.
-- Le code JavaScript des graphiques : les tests vérifient les données transmises à la page, pas le dessin.
-- Deux actions simultanées sur un même incident (voir les limites connues).
+- RG9 : l'import refuse une référence déjà utilisée et ce refus est testé, mais la contrainte d'unicité de la base n'a pas de test à elle.
+- script.sql et les requêtes sur un vrai serveur MySQL ou MariaDB, car les tests tournent sur H2 avec un schéma généré depuis les entités. On a seulement vérifié à la main, sur une instance MySQL 8.0.36 temporaire, que le script se charge, que les pages et l'API répondent, et qu'une affectation, une résolution, une évaluation, un export et un import passent.
+- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident. F10, F11 et Swagger ont seulement été vérifiés à la main sur H2, et les graphiques sur MySQL. Pour les pages d'export et d'import, on a seulement contrôlé le HTML.
+- Le message affiché pour un fichier de plus de 1 Mo, vérifié uniquement à la main avec un vrai envoi.
+- Le code JavaScript des graphiques : les tests regardent les données envoyées à la page, pas le dessin.
+- Deux actions simultanées sur le même incident (voir les limites connues).
 - Le retour arrière d'une transaction après une vraie panne.
 
 ## CHOIX TECHNIQUES
 
 ### Droits par profil
 
-Le second profil est l'agent de terrain, qui signale les pannes.
+Notre second profil est l'agent de terrain, celui qui signale les pannes.
 
 | N° | Fonctionnalité | Responsable d'exploitation | Agent de terrain |
 |---|---|---|---|
@@ -111,50 +113,50 @@ Le second profil est l'agent de terrain, qui signale les pannes.
 | Lot alpha | Export CSV de l'historique | Accès complet | Accès complet |
 | Lot alpha | Import CSV d'équipements | Accès complet | Interdit |
 
-Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation, du tableau de bord, des statistiques ou de l'import, ou s'il tente de modifier un incident par l'API, il reçoit une erreur 403. Le responsable d'exploitation est le seul à prendre les décisions de suivi : c'est donc lui qui affecte, résout, évalue et supervise.
+Les restrictions sont dans ConfigurationSecurite, pas seulement dans les vues. Si un agent appelle directement l'URL d'affectation, de résolution, d'évaluation, du tableau de bord, des statistiques ou de l'import, ou s'il essaie de modifier un incident par l'API, il reçoit une erreur 403. L'idée est que le responsable d'exploitation prend les décisions de suivi : c'est lui qui affecte, résout, évalue et supervise.
 
 ### Règles que nous avons précisées
 
-F6 : seule la description est modifiable, par les deux profils, tant que l'incident n'est pas résolu. L'équipement et la date d'ouverture ne changent pas, car la durée et l'historique en dépendent.
+F6 : seule la description se modifie, par les deux profils, tant que l'incident n'est pas résolu. L'équipement et la date d'ouverture restent fixes, parce que la durée et l'historique en dépendent.
 
 F8 : on ne peut pas résoudre un incident sans prestataire. Le sujet ne l'impose pas, mais un tel incident ne pourrait jamais être évalué (RG8).
 
-F10 : la note est saisie une seule fois et ne peut plus être modifiée. Elle est visible sur le détail de l'incident et dans l'historique, et la moyenne de chaque prestataire est sur la page Prestataires.
+F10 : la note se saisit une seule fois et ne se modifie plus. On la voit sur le détail de l'incident et dans l'historique, et la moyenne de chaque prestataire est sur la page Prestataires.
 
-F11 : le niveau d'attention n'est jamais enregistré. Il est calculé à chaque affichage par NiveauAttention, seul endroit où figurent les seuils de 48 h et 72 h. Les incidents sont triés du plus urgent au moins urgent, puis du plus ancien au plus récent. On peut filtrer par station, par type d'équipement et par niveau d'attention. Les compteurs ignorent le filtre par niveau pour continuer à montrer la répartition complète.
+F11 : le niveau d'attention n'est jamais enregistré, il est recalculé à chaque affichage par NiveauAttention. C'est le seul endroit où se trouvent les seuils de 48 h et 72 h. Les incidents sont triés du plus urgent au moins urgent, puis du plus ancien au plus récent. On peut filtrer par station, par type d'équipement et par niveau d'attention. Les compteurs ignorent le filtre par niveau, pour qu'on garde la répartition complète sous les yeux.
 
-F12 : l'API permet de lister et de consulter les incidents, d'affecter ou réaffecter un prestataire et de déclarer un incident résolu. Elle renvoie des objets IncidentReponse plutôt que les entités, pour ne pas lier le format de l'API au modèle JPA. Elle utilise la session de l'application : sans connexion, l'appel est redirigé vers /login (code 302), comme le demande le sujet pour les pages et l'API, alors qu'une API publique répondrait plutôt 401. Elle indique le niveau d'attention aux deux profils : seul l'écran du tableau de bord est réservé au responsable.
+F12 : l'API permet de lister et de consulter les incidents, d'affecter ou réaffecter un prestataire et de déclarer un incident résolu. Elle renvoie des objets IncidentReponse plutôt que les entités, pour que son format ne dépende pas du modèle JPA. Elle utilise la session de l'application : sans connexion, l'appel est redirigé vers /login (code 302), comme le demande le sujet pour les pages et l'API. Une API publique répondrait plutôt 401. Le niveau d'attention y est visible pour les deux profils, seul l'écran du tableau de bord est réservé au responsable.
 
 ### Exceptions
 
-Nous avons choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les services lèvent nos exceptions sans rien savoir de HTTP, et la traduction se fait à un seul endroit :
+On a choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les services lèvent nos exceptions sans rien savoir de HTTP, et la traduction se fait à un seul endroit :
 - RessourceIntrouvableException donne une erreur 404.
 - OperationIncidentInterditeException donne une erreur 409.
 - DonneeInvalideException donne une erreur 400.
-- ImportInvalideException donne une erreur 400. Elle est traitée dans ImportEquipementsControleur, car les erreurs doivent rester affichées sur le formulaire d'import.
+- ImportInvalideException donne une erreur 400. Elle est traitée dans ImportEquipementsControleur, parce que les erreurs doivent rester affichées sur le formulaire d'import.
 
-Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de formulaire restent affichées sur le formulaire.
+Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de saisie restent affichées sur le formulaire.
 
-Pour l'API, GestionnaireExceptionsApi traduit les mêmes exceptions en JSON au format ProblemDetail (application/problem+json). Il passe avant GestionnaireExceptions grâce à @Order, et ne s'applique qu'au package api : les pages web gardent leur page d'erreur HTML.
+Pour l'API, GestionnaireExceptionsApi traduit les mêmes exceptions en JSON, au format ProblemDetail (application/problem+json). Il passe avant GestionnaireExceptions grâce à @Order et ne s'applique qu'au package api, donc les pages web gardent leur page d'erreur HTML.
 
-Nous n'utilisons ResponseEntity qu'à un seul endroit, ExportHistoriqueControleur, car le type du fichier et son nom de téléchargement passent par les en-têtes de la réponse. Ailleurs, il n'apporterait rien : les pages renvoient le nom d'une vue, l'API renvoie ses objets avec le code 200 par défaut, et ProblemDetail porte déjà le code des réponses d'erreur.
+On n'utilise ResponseEntity qu'à un seul endroit, ExportHistoriqueControleur, parce que le type du fichier et son nom de téléchargement passent par les en-têtes de la réponse. Ailleurs il n'apporterait rien : les pages renvoient le nom d'une vue, l'API renvoie ses objets avec le code 200 par défaut, et ProblemDetail porte déjà le code des erreurs.
 
 ### SOLID
 
 Principes appliqués :
-- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service. De même, changer un seuil d'urgence ne touche que NiveauAttention. L'API n'a pas eu besoin de réécrire les règles d'affectation et de résolution, car elle appelle le même service que les pages. L'export et l'import ont aussi chacun leur service, séparé de leur contrôleur.
-- Inversion des dépendances : les services reçoivent leurs dépendances par le constructeur, dont Clock et les repositories. Cela permet de les tester avec une horloge fixe et des mocks.
+- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service, et changer un seuil d'urgence ne touche que NiveauAttention. On l'a vu en ajoutant l'API : pas besoin de réécrire les règles d'affectation et de résolution, elle appelle le même service que les pages. L'export et l'import ont aussi chacun leur service, séparé de leur contrôleur.
+- Inversion des dépendances : les services reçoivent leurs dépendances par le constructeur, dont Clock et les repositories. C'est ce qui permet de les tester avec une horloge fixe et des mocks.
 
 Principes écartés :
 - Ouvert/fermé : il n'y a que trois statuts, imposés par le sujet. Une hiérarchie de classes serait plus lourde que quelques conditions.
-- Liskov : nous n'avons pas de hiérarchie métier. Le seul héritage, UtilisateurDetails extends User, ajoute le prénom et le profil sans changer le comportement.
-- Ségrégation des interfaces : nous n'écrivons pas d'interface métier, et découper JpaRepository n'apporterait rien ici.
+- Liskov : on n'a pas de hiérarchie métier. Le seul héritage, UtilisateurDetails extends User, ajoute le prénom et le profil sans changer le comportement.
+- Ségrégation des interfaces : on n'écrit pas d'interface métier, et découper JpaRepository n'apporterait rien ici.
 
 ### Requêtes
 
-Nous utilisons des requêtes dérivées du nom de méthode, comme findByStatutOrderByDateHeureResolutionDesc.
+On utilise des requêtes dérivées du nom de méthode, comme findByStatutOrderByDateHeureResolutionDesc.
 
-Nous utilisons aussi cinq requêtes JPQL, pour les cas qu'un nom de méthode ne peut pas exprimer simplement :
+On a aussi cinq requêtes JPQL, pour les cas qu'un nom de méthode n'exprime pas simplement :
 - IncidentRepository.trouverIncidentsActifs a des filtres facultatifs, et ses « join fetch » évitent une requête par ligne du tableau de bord.
 - PrestataireRepository.calculerNotesDesPrestataires calcule la moyenne, avec des jointures externes pour garder les prestataires sans évaluation.
 - EquipementRepository.trouverTypes donne la liste des types pour le filtre du tableau de bord.
@@ -163,10 +165,10 @@ Nous utilisons aussi cinq requêtes JPQL, pour les cas qu'un nom de méthode ne 
 
 La seule requête SQL native est IncidentRepository.compterIncidentsParStation, qui compte les incidents actifs et résolus de chaque station.
 
-Analyse critique :
-- Intérêt : le SQL est direct et lisible, et les jointures externes qui partent de la station gardent les stations sans incident.
-- Limites : les noms de tables et de colonnes ne sont pas contrôlés par le modèle, donc un renommage dans les entités ne met pas la requête à jour, et une erreur n'apparaît qu'à l'exécution. La valeur 'RESOLU' y est écrite en dur et ne suit pas l'enum StatutIncident. Le résultat passe par une interface de projection, moins directe qu'un objet construit en JPQL.
-- Conclusion : JPQL aurait pu faire la même chose. Nous l'avons écrite en SQL parce que le sujet demande une requête native, pas parce que JPQL ne suffisait pas. Nous gardons JPQL pour les autres requêtes. Elle n'utilise que du SQL standard : elle a tourné sur H2 et sur MySQL 8.0.36.
+Notre analyse critique :
+- Ce qu'elle apporte : le SQL est direct et lisible, et les jointures externes qui partent de la station gardent les stations sans incident.
+- Ses limites : les noms de tables et de colonnes ne sont pas contrôlés par le modèle. Si on renomme quelque chose dans les entités, la requête ne suit pas et l'erreur n'apparaît qu'à l'exécution. La valeur 'RESOLU' est écrite en dur et ne suit pas l'enum StatutIncident. Le résultat passe aussi par une interface de projection, moins directe qu'un objet construit en JPQL.
+- Notre conclusion : JPQL aurait pu faire la même chose. Elle est en SQL parce que le sujet demande une requête native, pas parce que JPQL ne suffisait pas, et on garde JPQL pour le reste. Elle n'utilise que du SQL standard et a tourné sur H2 comme sur MySQL 8.0.36.
 
 ### @Transactional
 
@@ -175,13 +177,11 @@ Il est utilisé sur trois méthodes d'IncidentService :
 - affecterPrestataire, car le prestataire et le statut changent ensemble.
 - declarerResolu, car le statut et la date de résolution changent ensemble.
 
-declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui les départage. ProgrammeurService en contient aussi deux autres, qui viennent du TP.
+Il est aussi sur ImportEquipementsService.importerEquipements : plusieurs insertions doivent réussir ou échouer ensemble, pour qu'un import ne reste jamais à moitié fait (RG10).
 
-Il est aussi utilisé sur ImportEquipementsService.importerEquipements : plusieurs insertions doivent réussir ou échouer ensemble, pour qu'un import ne reste jamais à moitié fait (RG10).
+declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui tranche. Le contrôleur REST n'en ajoute aucun puisqu'il réutilise les méthodes d'IncidentService, et StatistiquesService ne fait que des lectures, où de petits écarts entre deux graphiques n'ont pas d'importance. ProgrammeurService en contient encore deux, qui viennent du TP.
 
-Le contrôleur REST n'en ajoute aucun, car il réutilise les méthodes d'IncidentService. StatistiquesService n'en a pas besoin non plus : il ne fait que des lectures, et de petits écarts entre deux graphiques n'ont pas d'importance.
-
-@Transactional rend les changements atomiques, mais ne protège pas contre deux actions simultanées sur un même incident (voir les limites connues).
+@Transactional rend les changements atomiques, mais ne protège pas contre deux actions simultanées sur le même incident (voir les limites connues).
 
 ## LOT ALPHA
 
@@ -197,19 +197,17 @@ Périmètre : une page /statistiques, réservée au responsable, avec cinq graph
 - le délai moyen de résolution par prestataire, en heures.
 
 Choix et essais :
-- Chart.js, car il couvre ces graphiques sans outil de construction. Le contrôleur et le service restent en Java, et le dessin est isolé dans static/js/statistiques.js.
-- Trois sources de données selon le besoin : la requête SQL native pour les stations, JPQL pour les types et les notes, et un calcul en Java pour la tendance et les délais.
-- La tendance montre aussi les jours sans incident, absents du résultat de la requête, sinon la courbe serait trompeuse.
-- Une première version utilisait une courbe arrondie, remplacée par des segments droits : l'arrondi suggérait des valeurs entre deux jours. Le graphique en anneau a aussi été réduit, car il déformait sa rangée.
-- Les prestataires sans note ou sans incident résolu ne sont pas affichés dans les graphiques concernés, pour ne pas les confondre avec une note ou un délai de 0.
+- On a pris Chart.js, qui couvre ces graphiques sans outil de construction. Les calculs restent en Java, et le dessin est isolé dans static/js/statistiques.js.
+- Les données viennent de trois sources selon le besoin : la requête SQL native pour les stations, JPQL pour les types et les notes, et un calcul en Java pour la tendance et les délais.
+- La tendance affiche aussi les jours sans incident. La requête ne les renvoie pas, et sans eux la courbe serait trompeuse.
+- La première version avait une courbe arrondie. On l'a remplacée par des segments droits, parce que l'arrondi laissait croire à des valeurs entre deux jours. On a aussi réduit le graphique en anneau, qui déformait sa rangée.
+- Les prestataires sans note ou sans incident résolu n'apparaissent pas dans les graphiques concernés, pour ne pas les confondre avec une note ou un délai de 0.
 
 Progression : réalisée le 5 novembre 2026, après le socle.
 
 Ce qui fonctionne : les cinq graphiques s'affichent à partir de la base. StatistiquesServiceTest et StatistiquesControleurTest testent les calculs, les requêtes et les droits, et l'affichage a été vérifié à la main sur MySQL.
 
-Difficultés : [à compléter]
-
-Reste à faire : choisir la période de la tendance, et tester le dessin des graphiques, qui n'a pas de test automatique.
+Reste à faire : pouvoir choisir la période de la tendance, et tester le dessin des graphiques, qui n'a pas de test automatique.
 
 ### Fonctionnalité transverse 2 : Import / export de données (piste 9)
 
@@ -220,18 +218,16 @@ Périmètre :
 - un import CSV de nouveaux équipements, depuis la liste des équipements, réservé au responsable, avec un fichier d'exemple à télécharger.
 
 Choix et essais :
-- Apache Commons CSV, plutôt que d'écrire nous-mêmes la gestion des guillemets et des séparateurs.
-- Le point-virgule et la marque UTF-8 en tête de fichier, pour qu'Excel en français sépare bien les colonnes et garde les accents. L'import accepte cette marque, et refuse un fichier qui n'est pas en UTF-8 avec un message qui explique quoi faire.
-- Un import en tout ou rien : toutes les lignes sont vérifiées avant d'écrire, et toutes les erreurs sont affichées avec leur numéro de ligne, pour corriger le fichier en une fois.
+- On a utilisé Apache Commons CSV plutôt que de gérer nous-mêmes les guillemets et les séparateurs.
+- Le fichier utilise le point-virgule et une marque UTF-8 en tête, pour qu'Excel en français sépare bien les colonnes et garde les accents. L'import accepte cette marque, et refuse un fichier qui n'est pas en UTF-8 avec un message qui explique quoi faire.
+- L'import marche en tout ou rien : toutes les lignes sont vérifiées avant d'écrire, et toutes les erreurs s'affichent avec leur numéro de ligne, pour corriger le fichier en une fois.
 - La contrainte d'unicité de la base reste le dernier filet si une même référence est créée pendant l'import.
-- À l'export, un texte qui commence par =, +, -, @ est préfixé d'une apostrophe, pour qu'un tableur ne l'exécute pas comme une formule.
-- Une première version traitait le fichier trop volumineux dans GestionnaireExceptions, mais cette méthode n'était jamais appelée. Nous l'avons retirée, et le message se trouve maintenant dans error.html, avec celui de l'erreur 403.
+- À l'export, un texte qui commence par =, +, -, @ reçoit une apostrophe devant, pour qu'un tableur ne l'exécute pas comme une formule.
+- La première version traitait le fichier trop volumineux dans GestionnaireExceptions, mais cette méthode n'était jamais appelée. On l'a retirée, et le message est maintenant dans error.html, à côté de celui de l'erreur 403.
 
 Progression : réalisée le 5 novembre 2026, après le socle et la fonctionnalité transverse 1.
 
 Ce qui fonctionne : l'export et l'import, avec leurs refus. ImportEquipementsServiceTest et ImportExportControleurTest les testent, et un parcours complet a été vérifié à la main sur MySQL.
-
-Difficultés : [à compléter]
 
 Reste à faire : importer aussi des stations, et essayer le fichier exporté dans Excel.
 
@@ -239,8 +235,14 @@ Reste à faire : importer aussi des stations, et essayer le fichier exporté dan
 
 Contribution de chacun : [à compléter]
 
-Plus grande difficulté et comment elle a été surmontée : [à compléter]
+Plus grande difficulté et comment elle a été surmontée :
 
-Fonctionnalités non réalisées et pourquoi : [à compléter]
+La connexion, tout au début du projet. On a eu du mal à la faire marcher avec les mots de passe hachés : les hash qu'on avait mis au départ dans script.sql ne fonctionnaient pas. On a fini par les remplacer par de nouveaux hash, et on en a profité pour corriger le nom du profil de l'agent (AGENT est devenu AGENT_TERRAIN). Après ça, la connexion est passée.
+
+On a eu deux autres difficultés :
+- Faire correspondre les entités JPA et le script SQL. On écrivait les deux séparément et ils ne disaient pas toujours la même chose. Par exemple, Evaluation avait une colonne id_prestataire qui n'existait pas dans le script, alors que le prestataire se retrouve déjà par l'incident. L'application démarrait quand même et le problème n'apparaissait qu'en utilisant la fonctionnalité. Il a fallu reprendre les entités et les repositories un par un pour les aligner sur le script.
+- Le nettoyage de Git. Les dossiers .idea et target étaient suivis, donc chaque commit embarquait des fichiers de l'IDE et des fichiers compilés. On a retiré ces dossiers du suivi, complété le .gitignore et remplacé le mot de passe par une variable d'environnement.
+
+Fonctionnalités non réalisées et pourquoi : toutes les fonctionnalités demandées sont faites, de F1 à F12, ainsi que les deux pistes du lot alpha. Il reste quelques points de finition qu'on n'a pas eu le temps de reprendre, ils sont listés dans les limites connues.
 
 Trois points à retenir du cours et du projet : [à compléter]

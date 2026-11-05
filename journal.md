@@ -1,125 +1,161 @@
-# Journal – TP Fil Rouge 5 (ALTN72) – Couche "V" : Thymeleaf
+# Journal -- Supervision Équipements (ALTN72, 2026-27)
 
-Réponses aux questions du TP 5. Code de référence : ce projet.
+Groupe : Léo [à compléter], Loïc [à compléter]
 
-## 5.2 Configuration
-- Dépendance spring-boot-starter-thymeleaf déjà dans le pom.xml. À vérifier, rien à ajouter.
-- Apporte : moteur Thymeleaf + intégration Spring MVC.
-- Auto-configuration : templates cherchés dans `src/main/resources/templates`, suffixe `.html`.
+Les anciennes notes du TP 5 sont dans docs/journal-tp5.md.
 
-## 5.3 Dossiers
-- Templates : `src/main/resources/templates`.
-- Statiques (non transformés) : `src/main/resources/static`.
+## README
 
-## 5.4 Changements dans le contrôleur
-- `@RestController` = `@Controller` + `@ResponseBody`.
-- `@RestController` : la valeur retournée est écrite dans le corps HTTP (JSON).
-- `@Controller` : la valeur retournée (String) est le NOM d'un template.
-- Spring passe ce nom au moteur Thymeleaf, qui produit la page HTML.
-- Données vers la vue : objet `Model`.
-- Conséquence : ResponseEntity (4.9) et @RequestBody (JSON) ne servent plus ici.
+Il faut Java 21, Maven (ou le wrapper mvnw fourni) et une base MySQL ou MariaDB sur le port 3306.
 
-## 5.5 – 5.6 Syntaxe, attributs
-- Template = HTML + attributs `th:*`, interprétés côté serveur.
-- `th:*` ou `data-th-*` : équivalents. La 2e forme est du HTML5 valide.
-- `${...}` : expression évaluée sur le Model.
-- `xmlns:th` : facultatif, utile à l'IDE.
+Le script ne crée pas la base, donc on la crée d'abord, puis on lance le script :
 
-## 5.7 Templates à créer
-- listeProgrammeurs.html, detailsProgrammeur.html, nouveauProgrammeur.html.
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS ALTN72_projet_java CHARACTER SET utf8mb4"
+```
 
-## 5.8 Affichage d'un seul programmeur
-- Comment `Model` arrive dans la méthode : il suffit de le déclarer en paramètre. Spring le fournit.
-- Ajouter une donnée : `model.addAttribute("nom", valeur)`.
-- Lien avec `${...}` : le 1er paramètre d'addAttribute = le nom retrouvé dans l'expression. `addAttribute("programmeurs", liste)` → `${programmeurs}`.
-- `${programmeur.nom}` appelle `getNom()`.
-- Prénom du dernier programmeur : `liste.get(liste.size() - 1).getPrenom()`. Attention : liste vide → exception.
-- Template : `<span th:text="${prenomDernierProgrammeur}"></span>`.
-- Étape intermédiaire : laissée en commentaire dans le code.
+```bash
+mysql -u root -p ALTN72_projet_java < src/main/resources/script.sql
+```
 
-## 5.9 Affichage des programmeurs
-- Trois éléments :
-  - contrôleur : récupère la liste (service) et la met dans le Model ;
-  - contrôleur : renvoie le nom du template (`"listeProgrammeurs"`, sans `.html`) ;
-  - template : parcourt la liste avec `th:each`.
-- `th:each="programmeur : ${programmeurs}"` : répète la balise (`<tr>`) pour chaque élément. `programmeur` = élément courant.
-- `th:text` : affiche la valeur, HTML échappé.
+Les dates des incidents de démo sont calculées à partir de l'heure actuelle. Si on relance le script, ils retrouvent l'âge prévu.
 
-### 5.9.1 Squelette HTML
-- Fait : une ligne `<tr>` par programmeur, une colonne par attribut.
-- Noms utilisés : attributs de la classe Java (`langageExpertise`, `livrePrefere`), pas les colonnes SQL.
+Pour lancer l'application, on met le mot de passe de la base dans la variable SPRING_DATASOURCE_PASSWORD, puis :
 
-### 5.9.2 Bootstrap
-- Fait : `<link>` Bootstrap dans le `<head>`. Classes `table`, `table-striped`, `btn`...
+```bash
+./mvnw spring-boot:run
+```
 
-## 5.10 Suppression
+L'application est ensuite sur http://localhost:8080/login.
 
-### 5.10.1 Bouton "Supprimez"
-- Bouton dans un `<form>` par ligne du tableau. URL construite avec `@{/programmeurs/{id}(id=...)}`.
+Application déployée : [à compléter]
 
-### 5.10.2 Que se passe-t-il au clic ? Cause ?
-- Erreur 405 Method Not Allowed.
-- Cause : le formulaire HTML n'envoie que GET ou POST. La route du contrôleur n'accepte que DELETE.
-- Un client HTTP (IntelliJ) peut envoyer DELETE. Pas un formulaire de navigateur.
+Comptes de test (les mots de passe sont hachés dans le script) :
+- Responsable d'exploitation : resp_exploitation / [à compléter]
+- Agent de terrain : agent_terrain / [à compléter]
 
-### Note technique 3 – HiddenHttpMethodFilter
-- Filtre de Spring MVC.
-- Sur une requête POST, lit le paramètre `_method`.
-- Si la valeur est PUT, PATCH ou DELETE : la requête est présentée à Spring avec cette méthode.
-- Le contrôleur voit donc un vrai DELETE ou PUT.
-- Formulaire : `method="POST"` + `<input type="hidden" name="_method" value="DELETE">`.
-- Raccourci Thymeleaf : `th:method="DELETE"` génère les deux.
-- Activation (désactivé par défaut) : `spring.mvc.hiddenmethod.filter.enabled=true` dans application.properties.
+Limites connues :
+- F10, F11, F12 et le lot alpha ne sont pas encore dans le dépôt.
+- L'en-tête affiche le profil entre crochets, et sec:authorize n'est pas interprété.
+- La fiche équipement n'a pas l'en-tête commun et affiche l'état EN_SERVICE en rouge.
+- Le code Programmeur du TP est encore là, alors que sa table n'est pas dans script.sql.
+- La protection CSRF est désactivée.
+- application.properties garde root comme mot de passe par défaut.
 
-### 5.10.3 Solution + redirection
-- Filtre activé + `th:method="DELETE"`.
-- Contrôleur : `return "redirect:/programmeurs"`.
-- Redirection : réponse 302 + en-tête `Location`. Le navigateur refait un GET /programmeurs.
-- Pourquoi pas `return "listeProgrammeurs"` directement :
-  - la liste n'est pas dans le Model → page vide ou erreur ;
-  - l'URL affichée resterait celle de l'action (/programmeurs/12) ;
-  - F5 rejouerait la suppression.
-- Pattern : Post / Redirect / Get.
-- Id inexistant : `ResponseStatusException` 404.
+## ARCHITECTURE
 
-## 5.11 Ajout
+Dépôt : https://github.com/Loicdei/ALTN72_2026-27_ProjetJava
 
-### 5.11.1 Bouton "Ajoutez"
-- Liste : formulaire GET vers `/programmeurs/nouveau`.
-- Contrôleur : met un `Programmeur` vide dans le Model (`nouveauProgrammeur`) → template `nouveauProgrammeur`.
-- Template : `th:object="${nouveauProgrammeur}"` + `th:field="*{nom}"`, etc.
-- Bouton "Enregistrez" : POST vers `/programmeurs`.
+Schéma :
 
-### 5.11.2 Succès → liste actualisée
-- `@ModelAttribute` (et non `@RequestBody`) : le formulaire envoie `nom=valeur&...`, pas du JSON.
-- Noms des champs = noms des attributs de `Programmeur`.
-- Service : `ajouterProgrammeur`. Puis `redirect:/programmeurs`.
-- Le service force l'id à null : POST crée toujours.
+```
+Navigateur -> Spring Security -> Contrôleurs -> Services -> Repositories -> Base de données
+                                     |
+                                     v
+                              Vues Thymeleaf
+```
 
-## 5.12 Modification
+- Les contrôleurs reçoivent les requêtes, valident les formulaires et choisissent la vue.
+- Les services contiennent les règles métier.
+- Les repositories accèdent à la base.
+- Le package modele contient les entités, formulaire les données saisies, exception nos erreurs métier et config la sécurité et l'horloge.
 
-### 5.12.1 Bouton "Modifiez"
-- Liste : formulaire GET vers `/programmeurs/{id}`.
-- Contrôleur : charge le programmeur → Model (`programmeurToUpdate`) → template `detailsProgrammeur`.
-- Formulaire prérempli : `th:object` + `th:field` (génère `value`).
-- Validation : POST + `_method=PUT` (`th:method="PUT"`), vers `/programmeurs/{id}`.
+## TESTS
 
-### 5.12.2 Succès → liste actualisée
-- `@PutMapping("/{id}")` avec `@ModelAttribute`.
-- Service : `modifierProgrammeur` (@Transactional).
-- Puis `redirect:/programmeurs`.
-- Id inexistant : 404.
+Les tests se lancent avec la commande suivante, sans base à installer car ils utilisent H2 en mémoire :
 
-## Remarques
-- Salaire : `<input type="number" step="any">`. Le navigateur envoie un point décimal. Avec `type="text"`, "45000,5" → erreur de conversion (400).
-- `server.error.include-message=always` : affiche le message du 404 dans la page d'erreur.
-- Les routes restent celles de 4.8 (REST) : seules les routes de formulaires s'ajoutent (`/nouveau`).
-- Le service n'a pas changé : seuls les commentaires ont été enrichis.
+```bash
+./mvnw verify
+```
 
-## Routes finales
-- GET /programmeurs → listeProgrammeurs
-- GET /programmeurs/nouveau → nouveauProgrammeur
-- GET /programmeurs/{id} → detailsProgrammeur
-- POST /programmeurs → ajout, redirection
-- PUT /programmeurs/{id} → modification, redirection (via `_method`)
-- DELETE /programmeurs/{id} → suppression, redirection (via `_method`)
+Il y a 43 tests :
+- IncidentServiceTest (16) teste les règles métier avec des mocks et une horloge fixe.
+- IncidentControleurTest (26) teste les parcours HTTP avec MockMvc, y compris la sécurité.
+- TpFilRougeApplicationTests (1) vérifie que l'application démarre.
+
+Ce qui est couvert : F4 à F9, donc la déclaration, le détail, la modification, l'affectation, la résolution et l'historique, avec les règles RG1, RG2, RG5, RG6, RG7 et RG11. Pour RG10, on vérifie qu'une opération refusée laisse l'incident inchangé.
+
+Ce qui n'est pas couvert :
+- RG3, RG4, RG8 et F12, car F10, F11 et F12 ne sont pas encore faits.
+- script.sql sur un vrai serveur MySQL ou MariaDB, car les tests génèrent leur schéma à partir des entités.
+- L'affichage dans un navigateur, dont la confirmation avant de résoudre un incident.
+- Le retour arrière d'une transaction après une vraie panne.
+
+## CHOIX TECHNIQUES
+
+### Droits par profil
+
+Le second profil est l'agent de terrain, qui signale les pannes.
+
+| N° | Fonctionnalité | Responsable d'exploitation | Agent de terrain |
+|---|---|---|---|
+| F2–F3 | Consulter équipements et fiches | Lecture seule | Lecture seule |
+| F4 | Déclarer un incident | Accès complet | Accès complet |
+| F5–F6 | Consulter / modifier un incident | Accès complet | Accès complet |
+| F7 | Affecter ou réaffecter un prestataire | Accès complet | Interdit |
+| F8 | Déclarer un incident résolu | Accès complet | Interdit |
+| F9 | Consulter l'historique | Lecture seule | Lecture seule |
+| F10 | Évaluer un prestataire | [à compléter] | [à compléter] |
+| F11 | Tableau de bord | [à compléter] | [à compléter] |
+
+Les restrictions sont dans ConfigurationSecurite. Si un agent appelle directement l'URL d'affectation ou de résolution, il reçoit une erreur 403.
+
+### Règles que nous avons précisées
+
+F6 : seule la description est modifiable, par les deux profils, tant que l'incident n'est pas résolu. L'équipement et la date d'ouverture ne changent pas, car la durée et l'historique en dépendent.
+
+F8 : on ne peut pas résoudre un incident sans prestataire. Le sujet ne l'impose pas, mais un tel incident ne pourrait jamais être évalué (RG8).
+
+### Exceptions
+
+Nous avons choisi @ControllerAdvice, avec la classe GestionnaireExceptions. Les services lèvent nos exceptions sans rien savoir de HTTP, et la traduction se fait à un seul endroit :
+- RessourceIntrouvableException donne une erreur 404.
+- OperationIncidentInterditeException donne une erreur 409.
+
+Les messages sont en français et la page d'erreur n'affiche aucune trace technique. Les erreurs de formulaire restent affichées sur le formulaire. Nous n'utilisons pas ResponseEntity, car les contrôleurs actuels renvoient des pages.
+
+### SOLID
+
+Principes appliqués :
+- Responsabilité unique : le contrôleur gère HTTP, le service les règles, GestionnaireExceptions les erreurs et les formulaires la validation. Une nouvelle règle de résolution ne touche donc que le service.
+- Inversion des dépendances : les services reçoivent leurs dépendances par le constructeur, dont Clock et les repositories. Cela permet de les tester avec une horloge fixe et des mocks.
+
+Principes écartés :
+- Ouvert/fermé : il n'y a que trois statuts, imposés par le sujet. Une hiérarchie de classes serait plus lourde que quelques conditions.
+- Liskov : nous n'avons pas de hiérarchie métier. Le seul héritage, UtilisateurDetails extends User, ajoute le prénom et le profil sans changer le comportement.
+- Ségrégation des interfaces : nous n'écrivons pas d'interface métier, et découper JpaRepository n'apporterait rien ici.
+
+### Requêtes
+
+Nous utilisons des requêtes dérivées du nom de méthode, comme findByStatutOrderByDateHeureResolutionDesc.
+
+Requêtes JPQL et requête SQL native avec son analyse critique : [à compléter]
+
+### @Transactional
+
+Il est utilisé sur trois méthodes d'IncidentService :
+- modifierDescription, pour contrôler le statut et écrire dans la même transaction.
+- affecterPrestataire, car le prestataire et le statut changent ensemble.
+- declarerResolu, car le statut et la date de résolution changent ensemble.
+
+declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. ProgrammeurService en contient aussi deux autres, qui viennent du TP.
+
+## LOT ALPHA
+
+### Fonctionnalité transverse 1 : [à compléter]
+
+Besoin, périmètre, choix et essais, ce qui fonctionne, difficultés, reste à faire : [à compléter]
+
+### Fonctionnalité transverse 2 : [à compléter]
+
+Besoin, périmètre, choix et essais, ce qui fonctionne, difficultés, reste à faire : [à compléter]
+
+## BILAN
+
+Contribution de chacun : [à compléter]
+
+Plus grande difficulté et comment elle a été surmontée : [à compléter]
+
+Fonctionnalités non réalisées et pourquoi : [à compléter]
+
+Trois points à retenir du cours et du projet : [à compléter]

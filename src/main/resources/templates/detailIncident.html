@@ -54,6 +54,29 @@
         </div>
     </div>
 
+    <div class="card mb-4" th:if="${utilisateurConnecte?.responsableExploitation == true and !incident.resolu}">
+        <div class="card-header" th:text="${incident.prestataire != null ? 'Réaffecter à un autre prestataire' : 'Affecter à un prestataire'}">Affecter à un prestataire</div>
+        <div class="card-body">
+            <form th:action="@{/incidents/{id}/affectation(id=${incident.id})}" th:object="${formulaireAffectation}"
+                  method="post" class="row g-2 align-items-start" novalidate>
+                <div class="col-sm-6">
+                    <label for="prestataireId" class="visually-hidden">Prestataire</label>
+                    <select id="prestataireId" class="form-select" th:field="*{prestataireId}" th:errorclass="is-invalid">
+                        <option value="">-- Choisir un prestataire --</option>
+                        <option th:each="prestataire : ${prestataires}"
+                                th:value="${prestataire.id}"
+                                th:text="${prestataire.nom}">Prestataire</option>
+                    </select>
+                    <div class="invalid-feedback" th:errors="*{prestataireId}">Message d'erreur</div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary"
+                            th:text="${incident.prestataire != null ? 'Réaffecter' : 'Affecter'}">Affecter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card" th:if="${evaluation != null}">
         <div class="card-header">Évaluation de l'intervention</div>
         <div class="card-body">

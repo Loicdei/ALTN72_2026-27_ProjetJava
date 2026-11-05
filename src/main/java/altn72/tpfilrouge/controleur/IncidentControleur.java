@@ -1,9 +1,11 @@
 package altn72.tpfilrouge.controleur;
 
+import altn72.tpfilrouge.formulaire.FormulaireAffectation;
 import altn72.tpfilrouge.formulaire.FormulaireIncident;
 import altn72.tpfilrouge.modele.Incident;
 import altn72.tpfilrouge.service.EquipementService;
 import altn72.tpfilrouge.service.IncidentService;
+import altn72.tpfilrouge.service.PrestataireService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,10 +25,14 @@ public class IncidentControleur {
 
     private final IncidentService incidentService;
     private final EquipementService equipementService;
+    private final PrestataireService prestataireService;
 
-    public IncidentControleur(IncidentService incidentService, EquipementService equipementService) {
+    public IncidentControleur(IncidentService incidentService,
+                              EquipementService equipementService,
+                              PrestataireService prestataireService) {
         this.incidentService = incidentService;
         this.equipementService = equipementService;
+        this.prestataireService = prestataireService;
     }
 
     @GetMapping("/equipements/{equipementId}/incidents/nouveau")
@@ -54,9 +60,33 @@ public class IncidentControleur {
     @GetMapping("/incidents/{id}")
     public String afficherDetail(@PathVariable Long id, Model model) {
         Incident incident = incidentService.obtenirParId(id);
+        FormulaireAffectation formulaire = new FormulaireAffectation();
+        if (incident.getPrestataire() != null) {
+            formulaire.setPrestataireId(incident.getPrestataire().getId());
+        }
+        model.addAttribute("formulaireAffectation", formulaire);
+        return preparerVueDetail(incident, model);
+    }
+
+    @PostMapping("/incidents/{id}/affectation")
+    public String affecterPrestataire(@PathVariable Long id,
+                                      @Valid @ModelAttribute("formulaireAffectation") FormulaireAffectation formulaire,
+                                      BindingResult resultatValidation,
+                                      Model model,
+                                      RedirectAttributes attributsRedirection) {
+        if (resultatValidation.hasErrors()) {
+            return preparerVueDetail(incidentService.obtenirParId(id), model);
+        }
+        incidentService.affecterPrestataire(id, formulaire.getPrestataireId());
+        attributsRedirection.addFlashAttribute("messageSucces", "Le prestataire a bien été affecté.");
+        return "redirect:/incidents/" + id;
+    }
+
+    private String preparerVueDetail(Incident incident, Model model) {
         model.addAttribute("incident", incident);
         model.addAttribute("dureeOuverture", incidentService.calculerDureeOuverture(incident));
-        model.addAttribute("evaluation", incidentService.obtenirEvaluation(id).orElse(null));
+        model.addAttribute("evaluation", incidentService.obtenirEvaluation(incident.getId()).orElse(null));
+        model.addAttribute("prestataires", prestataireService.obtenirTousLesPrestataires());
         return VUE_DETAIL;
     }
 

@@ -123,7 +123,7 @@ class IncidentControleurTest {
     @Test
     @WithMockUser
     void leDetailDUnIncidentEvalueAffichePrestataireEtEvaluation() throws Exception {
-        Prestataire prestataire = prestataireRepository.save(new Prestataire("Maintenance Test", "a@b.fr", "0100000000"));
+        Prestataire prestataire = prestataireRepository.save(new Prestataire("Rihanna", "a@b.fr", "0100000000"));
         Incident incident = new Incident("Portique bloqué", LocalDateTime.now().minusHours(50), equipement);
         incident.setPrestataire(prestataire);
         incident.setStatut(StatutIncident.RESOLU);
@@ -133,7 +133,7 @@ class IncidentControleurTest {
 
         mockMvc.perform(get("/incidents/{id}", incident.getId()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Maintenance Test")))
+                .andExpect(content().string(containsString("Rihanna")))
                 .andExpect(content().string(containsString("4 / 5")))
                 .andExpect(content().string(containsString("Intervention soignée")));
     }
@@ -202,6 +202,111 @@ class IncidentControleurTest {
         assertThat(incident.getDescription()).isEqualTo("Portique bloqué");
     }
 
+    private static UtilisateurDetails utilisateur(String prenom, String profil) {
+        return new UtilisateurDetails(prenom, "secret", List.of(new SimpleGrantedAuthority("ROLE_" + profil)), prenom, profil);
+    }
+
+    private static UtilisateurDetails agentTerrain() {
+        return utilisateur("Stromae", "AGENT_TERRAIN");
+    }
+
+    private static UtilisateurDetails responsable() {
+        return utilisateur("Adele", UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION);
+    }
+
+    private Prestataire creerPrestataire(String nom) {
+        return prestataireRepository.save(new Prestataire(nom, "contact@test.fr", "0100000000"));
+    }
+
+    @Test
+    void leResponsablePeutAffecterPuisReaffecterUnPrestataire() throws Exception {
+        Incident incident = creerIncidentOuvert();
+        Prestataire premier = creerPrestataire("Shakira");
+        Prestataire second = creerPrestataire("Celine Dion");
+
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", premier.getId().toString()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/incidents/" + incident.getId()));
+        assertThat(incident.getPrestataire()).isEqualTo(premier);
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.AFFECTE);
+
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", second.getId().toString()))
+                .andExpect(status().is3xxRedirection());
+        assertThat(incident.getPrestataire()).isEqualTo(second);
+    }
+
+    @Test
+    void unAgentNePeutPasAffecterUnPrestataireMemeEnAppelantLUrlDirectement() throws Exception {
+        Incident incident = creerIncidentOuvert();
+        Prestataire prestataire = creerPrestataire("Aya Nakamura");
+
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(agentTerrain()))
+                        .param("prestataireId", prestataire.getId().toString()))
+                .andExpect(status().isForbidden());
+
+        assertThat(incident.getPrestataire()).isNull();
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+    }
+
+    @Test
+    void seulLeResponsableVoitLeFormulaireDAffectation() throws Exception {
+        Incident incident = creerIncidentOuvert();
+        creerPrestataire("Angele");
+
+        mockMvc.perform(get("/incidents/{id}", incident.getId()).with(user(responsable())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Angele")));
+        mockMvc.perform(get("/incidents/{id}", incident.getId()).with(user(agentTerrain())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Angele"))));
+    }
+
+    @Test
+    void unIncidentResoluNeProposePasLAffectationEtLaRefuseCoteServeur() throws Exception {
+        Incident incident = creerIncidentResolu();
+        Prestataire prestataire = creerPrestataire("Aya Nakamura");
+
+        mockMvc.perform(get("/incidents/{id}", incident.getId()).with(user(responsable())))
+                .andExpect(content().string(not(containsString("/affectation"))));
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", prestataire.getId().toString()))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(containsString("Un incident résolu ne peut plus être affecté ni réaffecté.")));
+
+        assertThat(incident.getPrestataire()).isNull();
+    }
+
+    @Test
+    void uneAffectationSansPrestataireValideAfficheUnMessageComprehensible() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Veuillez choisir un prestataire.")));
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Veuillez choisir un prestataire.")))
+                .andExpect(content().string(not(containsString("Failed to convert"))));
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+    }
+
+    @Test
+    void affecterUnPrestataireInexistantDonneUne404() throws Exception {
+        Incident incident = creerIncidentOuvert();
+
+        mockMvc.perform(post("/incidents/{id}/affectation", incident.getId()).with(user(responsable()))
+                        .param("prestataireId", ID_INEXISTANT.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("n&#39;existe pas")));
+
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
+    }
+
     @Test
     @WithMockUser
     void unIncidentInexistantDonneUne404() throws Exception {
@@ -223,12 +328,9 @@ class IncidentControleurTest {
 
     @Test
     void unEquipementInexistantDonneUne404LisibleQuiConserveLUtilisateurConnecte() throws Exception {
-        UtilisateurDetails agent = new UtilisateurDetails("agent", "secret",
-                List.of(new SimpleGrantedAuthority("ROLE_AGENT_TERRAIN")), "Camille", "AGENT_TERRAIN");
-
-        mockMvc.perform(get("/equipements/{id}/incidents/nouveau", ID_INEXISTANT).with(user(agent)))
+        mockMvc.perform(get("/equipements/{id}/incidents/nouveau", ID_INEXISTANT).with(user(agentTerrain())))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString("n&#39;existe pas")))
-                .andExpect(content().string(containsString("Camille")));
+                .andExpect(content().string(containsString("Stromae")));
     }
 }

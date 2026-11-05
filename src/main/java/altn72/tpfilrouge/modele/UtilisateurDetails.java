@@ -7,6 +7,8 @@ import java.util.Collection;
 
 public class UtilisateurDetails extends User {
 
+    public static final String PROFIL_RESPONSABLE_EXPLOITATION = "RESPONSABLE_EXPLOITATION";
+
     private final String prenom;
     private final String profil;
 
@@ -22,5 +24,9 @@ public class UtilisateurDetails extends User {
 
     public String getProfil() {
         return profil;
+    }
+
+    public boolean isResponsableExploitation() {
+        return PROFIL_RESPONSABLE_EXPLOITATION.equals(profil);
     }
 }

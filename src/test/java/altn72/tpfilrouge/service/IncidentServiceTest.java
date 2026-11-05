@@ -4,6 +4,7 @@ import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.modele.Prestataire;
 import altn72.tpfilrouge.modele.StatutIncident;
 import altn72.tpfilrouge.repository.EvaluationRepository;
 import altn72.tpfilrouge.repository.IncidentRepository;
@@ -32,6 +33,7 @@ class IncidentServiceTest {
     private static final LocalDateTime MAINTENANT = LocalDateTime.of(2026, 11, 5, 10, 0);
     private static final Long ID_EQUIPEMENT = 1L;
     private static final Long ID_INCIDENT = 7L;
+    private static final Long ID_PRESTATAIRE = 3L;
 
     @Mock
     private IncidentRepository incidentRepository;
@@ -42,12 +44,72 @@ class IncidentServiceTest {
     @Mock
     private EquipementService equipementService;
 
+    @Mock
+    private PrestataireService prestataireService;
+
     private IncidentService incidentService;
 
     @BeforeEach
     void creerServiceAvecHorlogeFixe() {
         Clock horloge = Clock.fixed(MAINTENANT.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        incidentService = new IncidentService(incidentRepository, evaluationRepository, equipementService, horloge);
+        incidentService = new IncidentService(incidentRepository, evaluationRepository, equipementService,
+                prestataireService, horloge);
+    }
+
+    @Test
+    void affecterUnPrestataireFaitPasserLIncidentAuStatutAffecte() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());
+        Prestataire prestataire = new Prestataire();
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+        when(prestataireService.obtenirParId(ID_PRESTATAIRE)).thenReturn(prestataire);
+
+        incidentService.affecterPrestataire(ID_INCIDENT, ID_PRESTATAIRE);
+
+        assertThat(incident.getPrestataire()).isSameAs(prestataire);
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.AFFECTE);
+    }
+
+    @Test
+    void unIncidentAffectePeutEtreReaffecteAUnAutrePrestataire() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());
+        incident.setPrestataire(new Prestataire());
+        incident.setStatut(StatutIncident.AFFECTE);
+        Prestataire nouveauPrestataire = new Prestataire();
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+        when(prestataireService.obtenirParId(ID_PRESTATAIRE)).thenReturn(nouveauPrestataire);
+
+        incidentService.affecterPrestataire(ID_INCIDENT, ID_PRESTATAIRE);
+
+        assertThat(incident.getPrestataire()).isSameAs(nouveauPrestataire);
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.AFFECTE);
+    }
+
+    @Test
+    void unIncidentResoluNePeutPlusEtreAffecte() {
+        Prestataire prestataireInitial = new Prestataire();
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(2), new Equipement());
+        incident.setPrestataire(prestataireInitial);
+        incident.setStatut(StatutIncident.RESOLU);
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+
+        assertThatThrownBy(() -> incidentService.affecterPrestataire(ID_INCIDENT, ID_PRESTATAIRE))
+                .isInstanceOf(OperationIncidentInterditeException.class)
+                .hasMessage("Un incident résolu ne peut plus être affecté ni réaffecté.");
+        assertThat(incident.getPrestataire()).isSameAs(prestataireInitial);
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.RESOLU);
+    }
+
+    @Test
+    void affecterUnPrestataireInexistantLaisseLIncidentInchange() {
+        Incident incident = new Incident("Écran figé", MAINTENANT.minusHours(1), new Equipement());
+        when(incidentRepository.findById(ID_INCIDENT)).thenReturn(Optional.of(incident));
+        when(prestataireService.obtenirParId(ID_PRESTATAIRE))
+                .thenThrow(new RessourceIntrouvableException("Le prestataire n'existe pas."));
+
+        assertThatThrownBy(() -> incidentService.affecterPrestataire(ID_INCIDENT, ID_PRESTATAIRE))
+                .isInstanceOf(RessourceIntrouvableException.class);
+        assertThat(incident.getPrestataire()).isNull();
+        assertThat(incident.getStatut()).isEqualTo(StatutIncident.NON_AFFECTE);
     }
 
     @Test

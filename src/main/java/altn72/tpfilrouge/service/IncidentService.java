@@ -5,6 +5,7 @@ import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Evaluation;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.modele.StatutIncident;
 import altn72.tpfilrouge.repository.EvaluationRepository;
 import altn72.tpfilrouge.repository.IncidentRepository;
 import org.springframework.stereotype.Service;
@@ -22,15 +23,18 @@ public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final EvaluationRepository evaluationRepository;
     private final EquipementService equipementService;
+    private final PrestataireService prestataireService;
     private final Clock horloge;
 
     public IncidentService(IncidentRepository incidentRepository,
                            EvaluationRepository evaluationRepository,
                            EquipementService equipementService,
+                           PrestataireService prestataireService,
                            Clock horloge) {
         this.incidentRepository = incidentRepository;
         this.evaluationRepository = evaluationRepository;
         this.equipementService = equipementService;
+        this.prestataireService = prestataireService;
         this.horloge = horloge;
     }
 
@@ -73,6 +77,18 @@ public class IncidentService {
     public Incident modifierDescription(Long id, String description) {
         Incident incident = obtenirIncidentModifiable(id);
         incident.setDescription(description);
+        return incident;
+    }
+
+    // Le prestataire et le statut changent ensemble : un échec ne doit jamais laisser l'un sans l'autre (RG10).
+    @Transactional
+    public Incident affecterPrestataire(Long id, Long prestataireId) {
+        Incident incident = obtenirParId(id);
+        if (incident.isResolu()) {
+            throw new OperationIncidentInterditeException("Un incident résolu ne peut plus être affecté ni réaffecté.");
+        }
+        incident.setPrestataire(prestataireService.obtenirParId(prestataireId));
+        incident.setStatut(StatutIncident.AFFECTE);
         return incident;
     }
 }

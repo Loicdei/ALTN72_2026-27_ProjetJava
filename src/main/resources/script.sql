@@ -94,8 +94,15 @@ INSERT INTO incident (id_equipement, description, date_heure_ouverture, statut, 
 (4, 'Blocage mécanique des portes du portique', DATE_SUB(NOW(), INTERVAL 30 HOUR), 'AFFECTE', 2, NULL),
 
 -- 5. Résolu -> N'apparaît plus sur le tableau de bord actif (RG6)
-(2, 'Panne d alimentation secteur', DATE_SUB(NOW(), INTERVAL 120 HOUR), 'RESOLU', 1, DATE_SUB(NOW(), INTERVAL 100 HOUR));
+(2, 'Panne d alimentation secteur', DATE_SUB(NOW(), INTERVAL 120 HOUR), 'RESOLU', 1, DATE_SUB(NOW(), INTERVAL 100 HOUR)),
 
--- Évaluation sur l'incident résolu (Incident 5)
+-- 6. Résolu sans évaluation -> Peut être évalué pendant la démonstration (F10)
+(1, 'Lecteur de carte défectueux', DATE_SUB(NOW(), INTERVAL 200 HOUR), 'RESOLU', 3, DATE_SUB(NOW(), INTERVAL 190 HOUR)),
+
+-- 7. Résolu et évalué -> Donne une note moyenne de 4 à TechServices SARL avec l'incident 5
+(3, 'Écran éteint en salle des billets', DATE_SUB(NOW(), INTERVAL 300 HOUR), 'RESOLU', 1, DATE_SUB(NOW(), INTERVAL 280 HOUR));
+
+-- Évaluations sur les incidents résolus 5 et 7
 INSERT INTO evaluation (id_incident, note, commentaire, date_evaluation) VALUES
-(5, 5, 'Intervention rapide et efficace.', NOW());
+(5, 5, 'Intervention rapide et efficace.', NOW()),
+(7, 3, NULL, NOW());

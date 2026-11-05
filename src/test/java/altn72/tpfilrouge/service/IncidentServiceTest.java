@@ -6,7 +6,6 @@ import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
 import altn72.tpfilrouge.modele.Prestataire;
 import altn72.tpfilrouge.modele.StatutIncident;
-import altn72.tpfilrouge.repository.EvaluationRepository;
 import altn72.tpfilrouge.repository.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,9 +38,6 @@ class IncidentServiceTest {
     private IncidentRepository incidentRepository;
 
     @Mock
-    private EvaluationRepository evaluationRepository;
-
-    @Mock
     private EquipementService equipementService;
 
     @Mock
@@ -52,8 +48,7 @@ class IncidentServiceTest {
     @BeforeEach
     void creerServiceAvecHorlogeFixe() {
         Clock horloge = Clock.fixed(MAINTENANT.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
-        incidentService = new IncidentService(incidentRepository, evaluationRepository, equipementService,
-                prestataireService, horloge);
+        incidentService = new IncidentService(incidentRepository, equipementService, prestataireService, horloge);
     }
 
     private Incident incidentAffecteOuvertLe(LocalDateTime dateHeureOuverture) {

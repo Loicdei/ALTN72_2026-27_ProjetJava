@@ -7,6 +7,9 @@ import java.time.LocalDateTime;
 @Table(name = "evaluation")
 public class Evaluation {
 
+    public static final int NOTE_MINIMALE = 1;
+    public static final int NOTE_MAXIMALE = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_evaluation")

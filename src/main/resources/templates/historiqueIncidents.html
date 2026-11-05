@@ -23,6 +23,7 @@
             <th>Station</th>
             <th>Prestataire</th>
             <th>Ouvert le</th>
+            <th>Note</th>
         </tr>
         </thead>
         <tbody>
@@ -33,6 +34,7 @@
             <td th:text="${incident.equipement.station.nom}">Station</td>
             <td th:text="${incident.prestataire?.nom}">Prestataire</td>
             <td th:text="${#temporals.format(incident.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+            <td th:text="${notesParIncident[incident.id] != null ? notesParIncident[incident.id] + ' / 5' : 'Non évalué'}">5 / 5</td>
         </tr>
         </tbody>
     </table>

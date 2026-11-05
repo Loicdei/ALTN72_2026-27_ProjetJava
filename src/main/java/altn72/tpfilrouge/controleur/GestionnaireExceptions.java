@@ -1,5 +1,6 @@
 package altn72.tpfilrouge.controleur;
 
+import altn72.tpfilrouge.exception.DonneeInvalideException;
 import altn72.tpfilrouge.exception.OperationIncidentInterditeException;
 import altn72.tpfilrouge.exception.RessourceIntrouvableException;
 import altn72.tpfilrouge.modele.UtilisateurDetails;
@@ -28,6 +29,14 @@ public class GestionnaireExceptions {
     public String gererOperationInterdite(OperationIncidentInterditeException exception,
                                           @AuthenticationPrincipal UtilisateurDetails utilisateurConnecte,
                                           Model model) {
+        return afficherErreur(exception.getMessage(), utilisateurConnecte, model);
+    }
+
+    @ExceptionHandler(DonneeInvalideException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String gererDonneeInvalide(DonneeInvalideException exception,
+                                      @AuthenticationPrincipal UtilisateurDetails utilisateurConnecte,
+                                      Model model) {
         return afficherErreur(exception.getMessage(), utilisateurConnecte, model);
     }
 

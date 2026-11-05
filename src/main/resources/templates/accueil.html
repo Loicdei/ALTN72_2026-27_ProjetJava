@@ -100,8 +100,7 @@
         </a>
 
         <!-- 4. Tableau de bord -->
-        <!-- TODO: Remplacer href="#" par th:href="@{/dashboard}" (ou /tableau-de-bord) pour la fonctionnalité F11 -->
-        <a href="#" class="menu-card">
+        <a th:href="@{/tableau-de-bord}" th:if="${utilisateurConnecte?.responsableExploitation == true}" class="menu-card">
             Tableau de bord
         </a>
 

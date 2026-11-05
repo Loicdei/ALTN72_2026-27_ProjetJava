@@ -100,7 +100,17 @@ INSERT INTO incident (id_equipement, description, date_heure_ouverture, statut, 
 (1, 'Lecteur de carte défectueux', DATE_SUB(NOW(), INTERVAL 200 HOUR), 'RESOLU', 3, DATE_SUB(NOW(), INTERVAL 190 HOUR)),
 
 -- 7. Résolu et évalué -> Donne une note moyenne de 4 à TechServices SARL avec l'incident 5
-(3, 'Écran éteint en salle des billets', DATE_SUB(NOW(), INTERVAL 300 HOUR), 'RESOLU', 1, DATE_SUB(NOW(), INTERVAL 280 HOUR));
+(3, 'Écran éteint en salle des billets', DATE_SUB(NOW(), INTERVAL 300 HOUR), 'RESOLU', 1, DATE_SUB(NOW(), INTERVAL 280 HOUR)),
+
+-- 8 à 11. Cas limites des seuils. Relancer ce script juste avant la démonstration : ces âges avancent avec le temps.
+-- 47h -> VERT
+(4, 'Lecteur de badge lent à répondre', DATE_SUB(NOW(), INTERVAL 47 HOUR), 'NON_AFFECTE', NULL, NULL),
+-- 48h pile -> ORANGE
+(1, 'Voyant de validation éteint', DATE_SUB(NOW(), INTERVAL 48 HOUR), 'NON_AFFECTE', NULL, NULL),
+-- 72h pile -> ROUGE
+(2, 'Monnayeur bloqué', DATE_SUB(NOW(), INTERVAL 72 HOUR), 'NON_AFFECTE', NULL, NULL),
+-- Affecté depuis longtemps -> Reste "pris en charge", même au-delà de 72h (RG4)
+(3, 'Écran de quai illisible', DATE_SUB(NOW(), INTERVAL 100 HOUR), 'AFFECTE', 3, NULL);
 
 -- Évaluations sur les incidents résolus 5 et 7
 INSERT INTO evaluation (id_incident, note, commentaire, date_evaluation) VALUES

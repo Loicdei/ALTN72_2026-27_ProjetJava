@@ -37,8 +37,7 @@
                 <dd class="col-sm-9" th:text="${#temporals.format(incident.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</dd>
 
                 <dt class="col-sm-3">Durée d'ouverture</dt>
-                <dd class="col-sm-9"
-                    th:text="|${dureeOuverture.toDays()} j ${dureeOuverture.toHoursPart()} h ${dureeOuverture.toMinutesPart()} min|">2 j 3 h 10 min</dd>
+                <dd class="col-sm-9"><span th:replace="~{dureeOuverture :: duree(${dureeOuverture})}"></span></dd>
 
                 <th:block th:if="${incident.dateHeureResolution != null}">
                     <dt class="col-sm-3">Résolu le</dt>

@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<span th:fragment="duree(duree)"
+      th:text="|${duree.toDays()} j ${duree.toHoursPart()} h ${duree.toMinutesPart()} min|">2 j 3 h 10 min</span>
+
+</body>
+</html>

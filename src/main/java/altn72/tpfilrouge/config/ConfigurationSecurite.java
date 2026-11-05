@@ -25,6 +25,8 @@ public class ConfigurationSecurite {
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/incidents/*/affectation", "/incidents/*/resolution", "/incidents/*/evaluation")
                         .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
+                        .requestMatchers("/tableau-de-bord")
+                        .hasRole(UtilisateurDetails.PROFIL_RESPONSABLE_EXPLOITATION)
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

@@ -40,6 +40,10 @@ public class IncidentService {
         return incidentRepository.findByStatutOrderByDateHeureResolutionDesc(StatutIncident.RESOLU);
     }
 
+    public List<Incident> obtenirIncidentsActifs(Long stationId, String type) {
+        return incidentRepository.trouverIncidentsActifs(stationId, type);
+    }
+
     public Incident obtenirParId(Long id) {
         return incidentRepository.findById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("L'incident n° " + id + " n'existe pas."));

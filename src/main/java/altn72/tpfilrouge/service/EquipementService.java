@@ -24,6 +24,10 @@ public class EquipementService {
         return equipementRepository.findAll();
     }
 
+    public List<String> obtenirTypes() {
+        return equipementRepository.trouverTypes();
+    }
+
     public Equipement obtenirParId(Long id) {
         return equipementRepository.findById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("L'équipement n° " + id + " n'existe pas."));

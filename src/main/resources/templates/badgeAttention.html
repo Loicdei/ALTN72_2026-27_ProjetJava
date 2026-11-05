@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<span th:fragment="badge(niveau)" class="badge"
+      th:classappend="${niveau.name() == 'ROUGE' ? 'bg-danger' : (niveau.name() == 'VERT' ? 'bg-success' : (niveau.name() == 'PRIS_EN_CHARGE' ? 'bg-primary' : ''))}"
+      th:style="${niveau.name() == 'ORANGE' ? 'background-color: #fd7e14' : null}"
+      th:text="${niveau.libelle}">Niveau</span>
+
+</body>
+</html>

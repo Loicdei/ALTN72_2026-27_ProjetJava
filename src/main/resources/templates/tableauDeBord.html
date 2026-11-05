@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tableau de bord - Supervision Équipements</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<div th:replace="~{header :: header}"></div>
+
+<div class="container-fluid px-4 mt-4">
+    <h2 class="mb-4">Tableau de bord des incidents actifs</h2>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <a th:href="@{/tableau-de-bord(stationId=${filtre.stationId},type=${filtre.type})}"
+               class="card h-100 text-decoration-none text-reset" th:classappend="${filtre.niveau == null ? 'border-dark border-2' : ''}">
+                <div class="card-body">
+                    <div class="small text-muted">Incidents actifs</div>
+                    <div class="fs-2 fw-bold" th:text="${tableau.nombreIncidentsActifs}">8</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2" th:each="compteur : ${tableau.compteurs}">
+            <a th:href="@{/tableau-de-bord(stationId=${filtre.stationId},type=${filtre.type},niveau=${compteur.niveau})}"
+               class="card h-100 text-decoration-none text-reset" th:classappend="${filtre.niveau == compteur.niveau ? 'border-dark border-2' : ''}">
+                <div class="card-body">
+                    <span th:replace="~{badgeAttention :: badge(${compteur.niveau})}"></span>
+                    <div class="fs-2 fw-bold" th:text="${compteur.nombre}">2</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">Plus longue attente sans prestataire</div>
+                    <div class="fw-bold mt-1">
+                        <th:block th:if="${tableau.attenteMaximaleSansPrestataire != null}">
+                            <span th:replace="~{dureeOuverture :: duree(${tableau.attenteMaximaleSansPrestataire})}"></span>
+                        </th:block>
+                        <span th:if="${tableau.attenteMaximaleSansPrestataire == null}">Aucune</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form th:action="@{/tableau-de-bord}" method="get" class="row g-3 align-items-end mb-4">
+        <div class="col-auto">
+            <label for="stationId" class="form-label fw-bold">Station</label>
+            <select id="stationId" name="stationId" class="form-select" onchange="this.form.submit()">
+                <option value="">Toutes les stations</option>
+                <option th:each="station : ${stations}"
+                        th:value="${station.id}"
+                        th:text="${station.nom}"
+                        th:selected="${station.id == filtre.stationId}">Station</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="type" class="form-label fw-bold">Type d'équipement</label>
+            <select id="type" name="type" class="form-select" onchange="this.form.submit()">
+                <option value="">Tous les types</option>
+                <option th:each="type : ${types}"
+                        th:value="${type}"
+                        th:text="${type}"
+                        th:selected="${type == filtre.type}">Type</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="niveau" class="form-label fw-bold">Niveau d'attention</label>
+            <select id="niveau" name="niveau" class="form-select" onchange="this.form.submit()">
+                <option value="">Tous les niveaux</option>
+                <option th:each="niveau : ${niveaux}"
+                        th:value="${niveau}"
+                        th:text="${niveau.libelle}"
+                        th:selected="${niveau == filtre.niveau}">Niveau</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <a th:href="@{/tableau-de-bord}" class="btn btn-outline-secondary">Réinitialiser</a>
+        </div>
+    </form>
+
+    <div th:if="${#lists.isEmpty(tableau.lignes)}" class="alert alert-info">Aucun incident actif ne correspond à ces critères.</div>
+
+    <table th:unless="${#lists.isEmpty(tableau.lignes)}" class="table table-hover align-middle">
+        <thead class="table-dark">
+        <tr>
+            <th>Attention</th>
+            <th>Incident</th>
+            <th>Station</th>
+            <th>Équipement</th>
+            <th>Type</th>
+            <th>Ouvert le</th>
+            <th>Ouvert depuis</th>
+            <th>Prestataire</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ligne : ${tableau.lignes}">
+            <td><span th:replace="~{badgeAttention :: badge(${ligne.niveauAttention})}"></span></td>
+            <td><a th:href="@{/incidents/{id}(id=${ligne.incident.id})}" th:text="${ligne.incident.description}">Description de la panne</a></td>
+            <td th:text="${ligne.incident.equipement.station.nom}">Station</td>
+            <td>
+                <a th:href="@{/equipements/{id}(id=${ligne.incident.equipement.id})}"
+                   th:text="${ligne.incident.equipement.reference + ' - ' + ligne.incident.equipement.libelle}">EQ-001 - Borne</a>
+            </td>
+            <td th:text="${ligne.incident.equipement.type}">Validateur</td>
+            <td th:text="${#temporals.format(ligne.incident.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+            <td><span th:replace="~{dureeOuverture :: duree(${ligne.dureeOuverture})}"></span></td>
+            <td th:text="${ligne.incident.prestataire != null ? ligne.incident.prestataire.nom : 'En attente d''affectation'}">Prestataire</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a th:href="@{/accueil}" class="btn btn-secondary my-3">Retour à l'accueil</a>
+</div>
+
+</body>
+</html>

@@ -22,6 +22,7 @@ public class IncidentControleur {
     private static final String VUE_DECLARATION = "nouvelIncident";
     private static final String VUE_DETAIL = "detailIncident";
     private static final String VUE_MODIFICATION = "modifierIncident";
+    private static final String VUE_HISTORIQUE = "historiqueIncidents";
 
     private final IncidentService incidentService;
     private final EquipementService equipementService;
@@ -55,6 +56,12 @@ public class IncidentControleur {
         Incident incident = incidentService.declarerIncident(equipementId, formulaire.getDescription());
         attributsRedirection.addFlashAttribute("messageSucces", "L'incident a bien été déclaré.");
         return "redirect:/incidents/" + incident.getId();
+    }
+
+    @GetMapping("/incidents/historique")
+    public String afficherHistorique(Model model) {
+        model.addAttribute("incidents", incidentService.obtenirHistoriqueDesIncidentsResolus());
+        return VUE_HISTORIQUE;
     }
 
     @GetMapping("/incidents/{id}")

@@ -29,6 +29,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -223,6 +224,64 @@ class IncidentControleurTest {
         incident.setPrestataire(creerPrestataire("Beyonce"));
         incident.setStatut(StatutIncident.AFFECTE);
         return incidentRepository.save(incident);
+    }
+
+    private Incident creerIncidentResoluIlYA(int heures, String description) {
+        Incident incident = new Incident(description, LocalDateTime.now().minusDays(10), equipement);
+        incident.setPrestataire(creerPrestataire("Beyonce"));
+        incident.setStatut(StatutIncident.RESOLU);
+        incident.setDateHeureResolution(LocalDateTime.now().minusHours(heures));
+        return incidentRepository.save(incident);
+    }
+
+    @Test
+    @WithMockUser
+    void lHistoriqueEstOrdonneDuPlusRecentAuPlusAncienSelonLaDateDeResolution() throws Exception {
+        creerIncidentResoluIlYA(30, "Resolu il y a 30 heures");
+        creerIncidentResoluIlYA(2, "Resolu il y a 2 heures");
+        creerIncidentResoluIlYA(10, "Resolu il y a 10 heures");
+
+        mockMvc.perform(get("/incidents/historique"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(stringContainsInOrder(
+                        "Resolu il y a 2 heures", "Resolu il y a 10 heures", "Resolu il y a 30 heures")));
+    }
+
+    @Test
+    @WithMockUser
+    void lHistoriqueNeContientQueLesIncidentsResolus() throws Exception {
+        creerIncidentResoluIlYA(2, "Incident termine");
+        incidentRepository.save(new Incident("Incident en attente", LocalDateTime.now(), equipement));
+        Incident affecte = new Incident("Incident pris en charge", LocalDateTime.now(), equipement);
+        affecte.setPrestataire(creerPrestataire("Rihanna"));
+        affecte.setStatut(StatutIncident.AFFECTE);
+        incidentRepository.save(affecte);
+
+        mockMvc.perform(get("/incidents/historique"))
+                .andExpect(content().string(containsString("Incident termine")))
+                .andExpect(content().string(not(containsString("Incident en attente"))))
+                .andExpect(content().string(not(containsString("Incident pris en charge"))));
+    }
+
+    @Test
+    void unIncidentResoluParLeResponsableApparaitDansLHistoriqueDesDeuxProfils() throws Exception {
+        Incident incident = creerIncidentAffecte();
+
+        mockMvc.perform(post("/incidents/{id}/resolution", incident.getId()).with(user(responsable())));
+
+        mockMvc.perform(get("/incidents/historique").with(user(responsable())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/incidents/" + incident.getId())));
+        mockMvc.perform(get("/incidents/historique").with(user(agentTerrain())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/incidents/" + incident.getId())));
+    }
+
+    @Test
+    void lHistoriqueDemandeUneConnexion() throws Exception {
+        mockMvc.perform(get("/incidents/historique"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test

@@ -105,6 +105,9 @@
             <td>
                 <a th:href="@{/equipements/{id}(id=${ligne.incident.equipement.id})}"
                    th:text="${ligne.incident.equipement.reference + ' - ' + ligne.incident.equipement.libelle}">EQ-001 - Borne</a>
+                <th:block th:if="${ligne.equipementFragile}">
+                    <span th:replace="~{badgeFragile :: badge}"></span>
+                </th:block>
             </td>
             <td th:text="${ligne.incident.equipement.type}">Validateur</td>
             <td th:text="${#temporals.format(ligne.incident.dateHeureOuverture, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>

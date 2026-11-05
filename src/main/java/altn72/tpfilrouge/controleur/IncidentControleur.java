@@ -4,6 +4,7 @@ import altn72.tpfilrouge.formulaire.FormulaireAffectation;
 import altn72.tpfilrouge.formulaire.FormulaireEvaluation;
 import altn72.tpfilrouge.formulaire.FormulaireIncident;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.service.EquipementFragiliteService;
 import altn72.tpfilrouge.service.EquipementService;
 import altn72.tpfilrouge.service.EvaluationService;
 import altn72.tpfilrouge.service.IncidentService;
@@ -34,15 +35,18 @@ public class IncidentControleur {
     private final EquipementService equipementService;
     private final PrestataireService prestataireService;
     private final EvaluationService evaluationService;
+    private final EquipementFragiliteService equipementFragiliteService;
 
     public IncidentControleur(IncidentService incidentService,
                               EquipementService equipementService,
                               PrestataireService prestataireService,
-                              EvaluationService evaluationService) {
+                              EvaluationService evaluationService,
+                              EquipementFragiliteService equipementFragiliteService) {
         this.incidentService = incidentService;
         this.equipementService = equipementService;
         this.prestataireService = prestataireService;
         this.evaluationService = evaluationService;
+        this.equipementFragiliteService = equipementFragiliteService;
     }
 
     @GetMapping("/equipements/{equipementId}/incidents/nouveau")
@@ -63,8 +67,15 @@ public class IncidentControleur {
             return VUE_DECLARATION;
         }
         Incident incident = incidentService.declarerIncident(equipementId, formulaire.getDescription());
-        attributsRedirection.addFlashAttribute("messageSucces", "L'incident a bien été déclaré.");
+        attributsRedirection.addFlashAttribute("messageSucces", creerMessageDeclaration(equipementId));
         return "redirect:/incidents/" + incident.getId();
+    }
+
+    private String creerMessageDeclaration(Long equipementId) {
+        String confirmation = "L'incident a bien été déclaré.";
+        return equipementFragiliteService.estFragile(equipementId)
+                ? confirmation + " Attention : cet équipement est fragile."
+                : confirmation;
     }
 
     @GetMapping("/incidents/historique")

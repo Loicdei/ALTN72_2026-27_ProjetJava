@@ -24,6 +24,9 @@
                   th:classappend="${equipement.etatFonctionnement == 'OK' ? 'bg-success' : 'bg-danger'}"
                   th:text="${equipement.etatFonctionnement}">OK</span>
         </p>
+        <th:block th:if="${equipementFragile}">
+            <span th:replace="~{badgeFragile :: badge}"></span>
+        </th:block>
     </div>
 </div>
 

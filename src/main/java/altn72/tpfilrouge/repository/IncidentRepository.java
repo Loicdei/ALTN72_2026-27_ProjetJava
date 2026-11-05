@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
@@ -17,6 +18,15 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByStatutOrderByDateHeureResolutionDesc(StatutIncident statut);
 
     List<Incident> findByDateHeureOuvertureGreaterThanEqual(LocalDateTime debut);
+
+    @Query("""
+            select i.equipement.id
+            from Incident i
+            where i.dateHeureOuverture >= :debut
+            group by i.equipement.id
+            having count(i) >= :seuil
+            """)
+    Set<Long> trouverEquipementsAvecAuMoinsNIncidentsDepuis(@Param("debut") LocalDateTime debut, @Param("seuil") long seuil);
 
     @Query("""
             select new altn72.tpfilrouge.modele.NombreIncidentsParType(e.type, count(i))

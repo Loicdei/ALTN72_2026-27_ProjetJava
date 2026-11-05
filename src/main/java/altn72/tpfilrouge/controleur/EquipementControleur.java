@@ -2,6 +2,7 @@ package altn72.tpfilrouge.controleur;
 
 import altn72.tpfilrouge.modele.Equipement;
 import altn72.tpfilrouge.modele.Incident;
+import altn72.tpfilrouge.service.EquipementFragiliteService;
 import altn72.tpfilrouge.service.EquipementService;
 import altn72.tpfilrouge.service.IncidentService;
 import altn72.tpfilrouge.service.StationService;
@@ -21,11 +22,14 @@ public class EquipementControleur {
     private final EquipementService equipementService;
     private final StationService stationService;
     private final IncidentService incidentService;
+    private final EquipementFragiliteService equipementFragiliteService;
 
-    public EquipementControleur(EquipementService equipementService, StationService stationService, IncidentService incidentService) {
+    public EquipementControleur(EquipementService equipementService, StationService stationService,
+                                IncidentService incidentService, EquipementFragiliteService equipementFragiliteService) {
         this.equipementService = equipementService;
         this.stationService = stationService;
         this.incidentService = incidentService;
+        this.equipementFragiliteService = equipementFragiliteService;
     }
 
     @GetMapping
@@ -49,6 +53,7 @@ public class EquipementControleur {
 
         model.addAttribute("equipement", equipement);
         model.addAttribute("incidents", incidents);
+        model.addAttribute("equipementFragile", equipementFragiliteService.estFragile(id));
 
         return "detailEquipement";
     }

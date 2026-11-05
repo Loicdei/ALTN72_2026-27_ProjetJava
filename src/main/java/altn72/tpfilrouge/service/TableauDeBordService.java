@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TableauDeBordService {
@@ -21,14 +22,17 @@ public class TableauDeBordService {
             .thenComparing(LigneTableauDeBord::dureeOuverture, Comparator.reverseOrder());
 
     private final IncidentService incidentService;
+    private final EquipementFragiliteService equipementFragiliteService;
 
-    public TableauDeBordService(IncidentService incidentService) {
+    public TableauDeBordService(IncidentService incidentService, EquipementFragiliteService equipementFragiliteService) {
         this.incidentService = incidentService;
+        this.equipementFragiliteService = equipementFragiliteService;
     }
 
     public TableauDeBord construireTableauDeBord(FiltreTableauDeBord filtre) {
+        Set<Long> equipementsFragiles = equipementFragiliteService.obtenirEquipementsFragiles();
         List<LigneTableauDeBord> lignes = incidentService.obtenirIncidentsActifs(filtre.stationId(), filtre.type()).stream()
-                .map(this::creerLigne)
+                .map(incident -> creerLigne(incident, equipementsFragiles))
                 .sorted(ORDRE_D_URGENCE)
                 .toList();
         // Le niveau est calculé à l'instant de la lecture : ce filtre ne peut donc pas être fait par la base.
@@ -40,9 +44,10 @@ public class TableauDeBordService {
                 calculerAttenteMaximaleSansPrestataire(lignes));
     }
 
-    private LigneTableauDeBord creerLigne(Incident incident) {
+    private LigneTableauDeBord creerLigne(Incident incident, Set<Long> equipementsFragiles) {
         Duration dureeOuverture = incidentService.calculerDureeOuverture(incident);
-        return new LigneTableauDeBord(incident, incidentService.calculerNiveauAttention(incident).orElseThrow(), dureeOuverture);
+        return new LigneTableauDeBord(incident, incidentService.calculerNiveauAttention(incident).orElseThrow(), dureeOuverture,
+                equipementsFragiles.contains(incident.getEquipement().getId()));
     }
 
     private List<LigneTableauDeBord> filtrerParNiveau(List<LigneTableauDeBord> lignes, NiveauAttention niveau) {

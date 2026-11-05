@@ -35,6 +35,9 @@ class TableauDeBordServiceTest {
     @Mock
     private IncidentRepository incidentRepository;
 
+    @Mock
+    private EquipementFragiliteService equipementFragiliteService;
+
     private TableauDeBordService tableauDeBordService;
 
     @BeforeEach
@@ -42,7 +45,7 @@ class TableauDeBordServiceTest {
         Clock horloge = Clock.fixed(MAINTENANT.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         IncidentService incidentService = new IncidentService(incidentRepository,
                 mock(EquipementService.class), mock(PrestataireService.class), horloge);
-        tableauDeBordService = new TableauDeBordService(incidentService);
+        tableauDeBordService = new TableauDeBordService(incidentService, equipementFragiliteService);
     }
 
     private Incident incidentNonAffecteOuvertIlYA(int heures) {

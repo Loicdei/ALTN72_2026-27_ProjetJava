@@ -74,11 +74,12 @@ Les tests se lancent avec cette commande. Pas besoin d'installer une base, ils u
 ./mvnw verify
 ```
 
-Il y a 163 tests :
+Il y a 178 tests :
 - IncidentServiceTest (18), EvaluationServiceTest (12), TableauDeBordServiceTest (8), StatistiquesServiceTest (5) et ImportEquipementsServiceTest (14) testent les règles métier avec des mocks et une horloge fixe.
 - NiveauAttentionTest (11) teste les seuils de 48 h et 72 h, à la seconde près.
 - IncidentControleurTest (26), EvaluationControleurTest (16), TableauDeBordControleurTest (11), StatistiquesControleurTest (6) et ImportExportControleurTest (12) testent les parcours HTTP avec MockMvc, sécurité comprise.
 - IncidentApiControleurTest (23) teste l'API : réponses JSON, codes HTTP, droits par profil et documentation OpenAPI.
+- EquipementFragiliteServiceTest (9) et EquipementFragileControleurTest (6) testent l'évolution « Équipement fragile » (voir la section dédiée).
 - TpFilRougeApplicationTests (1) vérifie que l'application démarre.
 
 Ce qui est couvert : F4 à F12, c'est-à-dire la déclaration, le détail, la modification, l'affectation, la résolution, l'historique, l'évaluation, le tableau de bord et l'API, avec les règles RG1 à RG8 et RG11. Le calcul des statistiques, la requête SQL native, l'export et l'import CSV sont testés aussi. Pour RG10, on vérifie qu'une opération refusée laisse les données inchangées.
@@ -156,12 +157,13 @@ Principes écartés :
 
 On utilise des requêtes dérivées du nom de méthode, comme findByStatutOrderByDateHeureResolutionDesc.
 
-On a aussi cinq requêtes JPQL, pour les cas qu'un nom de méthode n'exprime pas simplement :
+On a aussi six requêtes JPQL, pour les cas qu'un nom de méthode n'exprime pas simplement :
 - IncidentRepository.trouverIncidentsActifs a des filtres facultatifs, et ses « join fetch » évitent une requête par ligne du tableau de bord.
 - PrestataireRepository.calculerNotesDesPrestataires calcule la moyenne, avec des jointures externes pour garder les prestataires sans évaluation.
 - EquipementRepository.trouverTypes donne la liste des types pour le filtre du tableau de bord.
 - IncidentRepository.trouverIncidents a un filtre de statut facultatif et charge d'un coup les données utiles à l'API.
 - IncidentRepository.compterIncidentsParType regroupe les incidents par type pour les statistiques.
+- IncidentRepository.trouverEquipementsAvecAuMoinsNIncidentsDepuis donne d'un coup les équipements fragiles, sans une requête par ligne du tableau de bord.
 
 La seule requête SQL native est IncidentRepository.compterIncidentsParStation, qui compte les incidents actifs et résolus de chaque station.
 
@@ -231,18 +233,75 @@ Ce qui fonctionne : l'export et l'import, avec leurs refus. ImportEquipementsSer
 
 Reste à faire : importer aussi des stations, et essayer le fichier exporté dans Excel.
 
+## Évolution séance finale
+
+### Ce qui a été fait
+
+Un équipement est maintenant repéré comme fragile s'il a eu au moins 3 incidents ouverts durant les 30 derniers jours, quel que soit leur statut.
+
+Ça se voit à trois endroits :
+- sur la fiche équipement, avec un badge « Équipement fragile » (detailEquipement.html) ;
+- au tableau de bord, avec le même badge sur la ligne de chaque incident actif d'un équipement fragile (tableauDeBord.html) ;
+- à la déclaration d'un incident, où le message de confirmation prévient que l'équipement est fragile (IncidentControleur).
+
+Les fichiers principaux sont EquipementFragiliteService pour la règle, IncidentRepository pour la requête, TableauDeBordService et EquipementControleur pour l'affichage, et badgeFragile.html pour le badge, qui n'est écrit qu'une fois.
+
+### Choix de conception et raccourci
+
+La règle est dans EquipementFragiliteService (EF6). Le seuil de 3 et la fenêtre de 30 jours y sont deux constantes, et ils n'existent nulle part ailleurs (EF5).
+
+La fragilité n'est pas enregistrée en base. Elle est recalculée à chaque consultation à partir de l'horloge injectée, donc la fenêtre glisse toute seule (EF4). La requête ne filtre pas sur le statut, ce qui fait compter aussi les incidents résolus (EF2), et elle garde les dates d'ouverture supérieures ou égales au début de la fenêtre (EF1).
+
+Le tableau de bord récupère d'abord l'ensemble des équipements fragiles, puis regarde chaque ligne dans cet ensemble. Ça évite une requête par ligne.
+
+Notre raccourci : estFragile utilise la même requête que le tableau de bord, puis cherche l'équipement dans le résultat. Une requête qui compte pour un seul équipement serait un peu plus légère, mais il n'y a ainsi qu'une seule requête à garder juste. Le texte du message de déclaration est aussi construit dans IncidentControleur : le contrôleur demande au service si l'équipement est fragile, mais ne décide de rien.
+
+### Tests ajoutés
+
+EquipementFragiliteServiceTest (9 tests) passe par la vraie requête avec une horloge fixe :
+- 2 incidents dans la fenêtre : non fragile ;
+- 3 incidents dans la fenêtre : fragile ;
+- 3 incidents dont 1 résolu : fragile ;
+- 1 incident sur les 3 ouvert il y a 30 jours et 1 minute : non fragile ;
+- le même ouvert il y a 29 jours et 23 h 59 : fragile ;
+- le même ouvert il y a exactement 30 jours : fragile ;
+- 2 incidents récents et 5 vieux de 45 jours : non fragile ;
+- l'équipement voisin n'est pas contaminé ;
+- la fenêtre glisse quand l'heure de consultation avance.
+
+EquipementFragileControleurTest (6 tests) passe par MockMvc :
+- le badge apparaît sur la fiche d'un équipement fragile, et pas sur celle de son voisin ;
+- au tableau de bord, seules les lignes d'un équipement fragile sont marquées, et aucun badge n'apparaît s'il n'y en a pas ;
+- le message de confirmation contient « fragile » à la troisième déclaration, et pas avant.
+
+### Limites connues
+
+- Avec les données de démo, 3 équipements sur 4 sont déjà fragiles. EQ-LD-004 a 2 incidents : en déclarer un troisième permet de voir le message et le badge apparaître.
+- La fragilité n'est pas renvoyée par l'API REST et ne sert pas de filtre au tableau de bord, car le complément ne le demande pas.
+- On a vérifié à la main sur une instance MySQL 8.0.36 temporaire les badges et le message, mais seulement dans le HTML, pas à l'écran dans un navigateur.
+- Sur la version déployée, on n'a contrôlé que le démarrage et l'absence d'erreur, sans refaire le parcours connecté.
+
 ## BILAN
 
-Contribution de chacun : [à compléter]
+Contribution de chacun : 
+
+Loïc : F1 - F3, F10 - F12, déploiement, lots alpha, Evolution
+Léo : F4 - F9
 
 Plus grande difficulté et comment elle a été surmontée :
 
-La connexion, tout au début du projet. On a eu du mal à la faire marcher avec les mots de passe hachés : les hash qu'on avait mis au départ dans script.sql ne fonctionnaient pas. On a fini par les remplacer par de nouveaux hash, et on en a profité pour corriger le nom du profil de l'agent (AGENT est devenu AGENT_TERRAIN). Après ça, la connexion est passée.
+La connexion, tout au début du projet. On a eu du mal à la faire marcher avec les mots de passe hachés : les hash qu'on avait mis au départ dans script.sql ne fonctionnaient pas. On a fini par les remplacer par de nouveaux hash. Après ça, la connexion est passée.
 
 On a eu deux autres difficultés :
-- Faire correspondre les entités JPA et le script SQL. On écrivait les deux séparément et ils ne disaient pas toujours la même chose. Par exemple, Evaluation avait une colonne id_prestataire qui n'existait pas dans le script, alors que le prestataire se retrouve déjà par l'incident. L'application démarrait quand même et le problème n'apparaissait qu'en utilisant la fonctionnalité. Il a fallu reprendre les entités et les repositories un par un pour les aligner sur le script.
+- Faire correspondre les entités JPA et le script SQL. On écrivait les deux séparément et ils ne disaient pas toujours la même chose. L'application démarrait quand même et le problème n'apparaissait qu'en utilisant la fonctionnalité. Il a fallu reprendre les entités et les repositories un par un pour les aligner sur le script.
 - Le nettoyage de Git. Les dossiers .idea et target étaient suivis, donc chaque commit embarquait des fichiers de l'IDE et des fichiers compilés. On a retiré ces dossiers du suivi, complété le .gitignore et remplacé le mot de passe par une variable d'environnement.
 
 Fonctionnalités non réalisées et pourquoi : toutes les fonctionnalités demandées sont faites, de F1 à F12, ainsi que les deux pistes du lot alpha. Il reste quelques points de finition qu'on n'a pas eu le temps de reprendre, ils sont listés dans les limites connues.
 
-Trois points à retenir du cours et du projet : [à compléter]
+Trois points à retenir du cours et du projet :
+
+1. L'importance d'une bonne architecture, avec le MVC. Chaque partie a son rôle : le contrôleur reçoit la requête et choisit la réponse, le service porte les règles métier, le repository parle à la base et la vue s'occupe de l'affichage. On l'a vu quand on a ajouté l'API : elle a pu réutiliser les règles déjà écrites dans les services, sans rien recopier.
+
+2. Les path variables. Avec @PathVariable, on récupère directement une valeur dans l'URL, comme l'id dans /incidents/{id}, et Spring la convertit dans le bon type. On a aussi retenu que si la valeur n'a pas le bon type, comme /incidents/abc, on obtient une erreur 400, et qu'une route fixe comme /incidents/historique passe avant /incidents/{id}.
+
+3. Comment faire une API REST. @RestController renvoie du JSON, là où @Controller renvoie le nom d'une page. On utilise @GetMapping pour lire, @PostMapping pour créer ou déclencher une action et @PutMapping pour remplacer une valeur, avec @PathVariable pour désigner la ressource et @RequestBody pour lire le JSON reçu. Par exemple : GET /api/incidents/{id}, PUT /api/incidents/{id}/prestataire et POST /api/incidents/{id}/resolution. Il faut aussi répondre avec le bon code HTTP, comme 404 pour un incident inexistant ou 409 pour une action interdite.

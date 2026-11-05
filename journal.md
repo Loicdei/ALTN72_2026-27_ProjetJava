@@ -39,7 +39,6 @@ Limites connues :
 - Dans l'API, les erreurs qui ne passent pas par notre contrôleur (403, 405, route inconnue) gardent le format standard de Spring Boot, en anglais.
 - L'en-tête affiche le profil entre crochets, et sec:authorize n'est pas interprété.
 - La fiche équipement n'a pas l'en-tête commun et affiche l'état EN_SERVICE en rouge.
-- Le code Programmeur du TP est encore là, alors que sa table n'est pas dans script.sql.
 - Sur la version déployée, les incidents de démo vieillissent : leurs niveaux d'attention changent après le chargement du script.
 - La protection CSRF est désactivée.
 - application.properties garde root comme mot de passe par défaut.
@@ -181,7 +180,7 @@ Il est utilisé sur trois méthodes d'IncidentService :
 
 Il est aussi sur ImportEquipementsService.importerEquipements : plusieurs insertions doivent réussir ou échouer ensemble, pour qu'un import ne reste jamais à moitié fait (RG10).
 
-declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui tranche. Le contrôleur REST n'en ajoute aucun puisqu'il réutilise les méthodes d'IncidentService, et StatistiquesService ne fait que des lectures, où de petits écarts entre deux graphiques n'ont pas d'importance. ProgrammeurService en contient encore deux, qui viennent du TP.
+declarerIncident n'en a pas besoin, car il ne fait qu'une seule écriture. EvaluationService.evaluerIntervention non plus : si deux saisies arrivent en même temps, c'est la contrainte d'unicité de la base qui tranche. Le contrôleur REST n'en ajoute aucun puisqu'il réutilise les méthodes d'IncidentService, et StatistiquesService ne fait que des lectures, où de petits écarts entre deux graphiques n'ont pas d'importance.
 
 @Transactional rend les changements atomiques, mais ne protège pas contre deux actions simultanées sur le même incident (voir les limites connues).
 

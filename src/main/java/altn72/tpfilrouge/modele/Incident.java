@@ -18,8 +18,9 @@ public class Incident {
     @Column(name = "date_heure_ouverture", nullable = false)
     private LocalDateTime dateHeureOuverture;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false, length = 50)
-    private String statut;
+    private StatutIncident statut = StatutIncident.NON_AFFECTE;
 
     @Column(name = "date_heure_resolution")
     private LocalDateTime dateHeureResolution;
@@ -34,10 +35,9 @@ public class Incident {
 
     public Incident() {}
 
-    public Incident(String description, LocalDateTime dateHeureOuverture, String statut, Equipement equipement) {
+    public Incident(String description, LocalDateTime dateHeureOuverture, Equipement equipement) {
         this.description = description;
         this.dateHeureOuverture = dateHeureOuverture;
-        this.statut = statut;
         this.equipement = equipement;
     }
 
@@ -50,8 +50,8 @@ public class Incident {
     public LocalDateTime getDateHeureOuverture() { return dateHeureOuverture; }
     public void setDateHeureOuverture(LocalDateTime dateHeureOuverture) { this.dateHeureOuverture = dateHeureOuverture; }
 
-    public String getStatut() { return statut; }
-    public void setStatut(String statut) { this.statut = statut; }
+    public StatutIncident getStatut() { return statut; }
+    public void setStatut(StatutIncident statut) { this.statut = statut; }
 
     public LocalDateTime getDateHeureResolution() { return dateHeureResolution; }
     public void setDateHeureResolution(LocalDateTime dateHeureResolution) { this.dateHeureResolution = dateHeureResolution; }
